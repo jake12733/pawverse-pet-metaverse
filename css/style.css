@@ -569,9 +569,28 @@ textarea {
   display: block;
   width: 100%;
   height: auto;
-  aspect-ratio: 860 / 520;
+  aspect-ratio: 920 / 560;
   cursor: pointer;
-  background: #b9e5a8;
+  background: #20311d;
+}
+
+.hud-walk-chip {
+  background: rgba(20, 24, 18, 0.72);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.emote-btn-accent {
+  background: var(--secondary-soft);
+  border-color: var(--secondary);
+  color: #167a50;
+  font-weight: 800;
+}
+
+.emote-btn-accent:hover {
+  background: var(--secondary);
+  border-color: var(--secondary);
+  color: #fff;
 }
 
 .emote-bar {

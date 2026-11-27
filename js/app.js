@@ -6,7 +6,7 @@
   let draftAvatar = { ...state.avatar };
   let activeShopCategory = 'all';
   let activeHeroVideoId = DATA.LIVE_VIDEOS[0].id;
-  let selectedPostPhoto = DATA.PEXELS_PHOTOS.dogPark;
+  let selectedPostPhoto = DATA.PEXELS_PHOTOS.walkPark;
 
   const el = {
     coinBalance: document.getElementById('coinBalance'),
@@ -21,7 +21,10 @@
     currentZoneDesc: document.getElementById('currentZoneDesc'),
     hudAvatarImg: document.getElementById('hudAvatarImg'),
     hudPetText: document.getElementById('hudPetText'),
+    hudWalkMeter: document.getElementById('hudWalkMeter'),
     metaverseCanvas: document.getElementById('metaverseCanvas'),
+    leashToggleBtn: document.getElementById('leashToggleBtn'),
+    throwBallBtn: document.getElementById('throwBallBtn'),
     centerCameraBtn: document.getElementById('centerCameraBtn'),
     nearbyList: document.getElementById('nearbyList'),
     nearbyCount: document.getElementById('nearbyCount'),
@@ -79,8 +82,8 @@
     })[ch]);
   }
 
-  // Preload portraits for instant Canvas rendering
-  DATA.PET_PORTRAITS.forEach((p) => getCachedImage(p.url));
+  // Preload transparent sprites
+  Object.values(DATA.PET_SPRITES).forEach((s) => getCachedImage(s.spriteUrl));
 
   // Hero Live Video Switcher
   function initHeroVideo() {
@@ -163,12 +166,8 @@
       const vid = card.querySelector('video');
       const item = DATA.LIVE_VIDEOS.find((v) => v.id === card.dataset.modalVideo);
 
-      card.addEventListener('mouseenter', () => {
-        vid.play().catch(() => {});
-      });
-      card.addEventListener('mouseleave', () => {
-        vid.pause();
-      });
+      card.addEventListener('mouseenter', () => vid.play().catch(() => {}));
+      card.addEventListener('mouseleave', () => vid.pause());
       card.addEventListener('click', () => {
         if (item) openVideoModal(item);
       });
@@ -183,22 +182,48 @@
     });
   }
 
-  // Initialize Metaverse World Engine
-  const world = new WorldEngine(el.metaverseCanvas, state);
+  function formatWalkDistance(meters) {
+    if (meters >= 1000) return `🐾 산책 ${(meters / 1000).toFixed(2)} km`;
+    return `🐾 산책 ${Math.floor(meters)} m`;
+  }
+
+  // Initialize Photorealistic 2.5D Walk Engine
+  let lastSavedWalk = state.walkMeters || 0;
+  const world = new WorldEngine(el.metaverseCanvas, state, {
+    onWalkProgress: (meters, earnedMilestone) => {
+      state.walkMeters = meters;
+      el.hudWalkMeter.textContent = formatWalkDistance(meters);
+      if (earnedMilestone) {
+        state.coins += 20;
+        DATA.saveState(state);
+        renderTopBar();
+        showToast('🎉 산책 100m 달성! 포우코인 +20 P 획득!');
+      } else if (meters - lastSavedWalk > 15) {
+        lastSavedWalk = meters;
+        DATA.saveState(state);
+      }
+    },
+    onFetchBall: () => {
+      state.coins += 10;
+      DATA.saveState(state);
+      renderTopBar();
+      showToast('🎾 공 물어오기 성공! (+10 P)');
+    }
+  });
 
   function renderTopBar() {
     el.coinBalance.textContent = state.coins.toLocaleString('ko-KR');
     el.hudAvatarImg.src = state.avatar.photoUrl;
     el.hudPetText.textContent = `${state.avatar.name} · ${state.avatar.personality}`;
+    el.hudWalkMeter.textContent = formatWalkDistance(state.walkMeters || 0);
   }
 
   function renderZoneHeader() {
     const zone = DATA.ZONES.find((z) => z.id === state.zoneId) || DATA.ZONES[0];
     el.currentZoneTitle.textContent = `${zone.icon} ${zone.name}`;
-    el.currentZoneDesc.textContent = `${zone.desc} 바닥을 클릭하거나 WASD로 이동해 보세요.`;
+    el.currentZoneDesc.textContent = `${zone.desc} 바닥 클릭·WASD로 실사 산책을 즐겨보세요!`;
   }
 
-  // Nearby Pets with Real Pexels Thumbnails
   function renderNearbyPets() {
     el.nearbyCount.textContent = `${DATA.NPCS.length + 1}마리`;
     el.nearbyList.innerHTML = DATA.NPCS.map(
@@ -221,7 +246,6 @@
     });
   }
 
-  // Chat Feed
   function appendChat(sender, text, isMine = false) {
     const div = document.createElement('div');
     div.className = `chat-msg ${isMine ? 'mine' : ''}`;
@@ -232,9 +256,9 @@
   }
 
   function initChat() {
-    appendChat('🐾 시스템', 'Pexels 실사 포토 아바타 모드로 햇살 공원에 입장했어요!');
-    appendChat('🐶 초코', '안녕! 오늘 잔디밭 산책하기 딱 좋은 날이야~');
-    appendChat('🐱 모찌', '위에 라이브 캠 영상도 진짜 힐링된다 냥!');
+    appendChat('🐾 시스템', '실사 2.5D 산책 뷰에 입장했습니다! 바닥을 클릭하거나 공을 던져보세요.');
+    appendChat('🐶 초코', '와 날씨 진짜 좋다! 저기 잔디밭까지 같이 걸을까?');
+    appendChat('🐱 모찌', '나무 그늘에서 바람 쐬니까 너무 좋아 냥~');
 
     el.chatForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -247,23 +271,28 @@
     });
   }
 
-  // Emotes, Avatar Mode & Time of Day Controls
+  function updateLeashButton() {
+    el.leashToggleBtn.textContent = state.leashEnabled ? '🦮 리드줄 ON' : '🐾 자유 산책';
+    el.leashToggleBtn.setAttribute('aria-pressed', String(state.leashEnabled));
+  }
+
   function initWorldControls() {
-    document.querySelectorAll('.emote-btn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        world.triggerEmote(btn.dataset.emote, btn.dataset.text);
-      });
+    updateLeashButton();
+    el.leashToggleBtn.addEventListener('click', () => {
+      state.leashEnabled = !state.leashEnabled;
+      world.setLeashEnabled(state.leashEnabled);
+      DATA.saveState(state);
+      updateLeashButton();
+      showToast(state.leashEnabled ? '🦮 산책 리드줄을 착용했어요!' : '🐾 리드줄을 풀고 자유롭게 뛰어놀아요!');
     });
 
-    document.querySelectorAll('[data-avatar-mode]').forEach((btn) => {
-      btn.classList.toggle('active', btn.dataset.avatarMode === state.avatarMode);
+    el.throwBallBtn.addEventListener('click', () => {
+      world.throwBall();
+    });
+
+    document.querySelectorAll('.emote-btn[data-emote]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('[data-avatar-mode]').forEach((b) => b.classList.remove('active'));
-        btn.classList.add('active');
-        state.avatarMode = btn.dataset.avatarMode;
-        world.setAvatarMode(state.avatarMode);
-        DATA.saveState(state);
-        showToast(state.avatarMode === 'photo' ? '📸 실사 포토 아바타 모드로 전환!' : '🎨 일러스트 아바타 모드로 전환!');
+        world.triggerEmote(btn.dataset.emote, btn.dataset.text);
       });
     });
 
@@ -284,7 +313,6 @@
     });
   }
 
-  // World Zones Cards with Real Pexels Cover Photos
   function renderZones() {
     el.zonesGrid.innerHTML = DATA.ZONES.map((zone) => {
       const active = zone.id === state.zoneId;
@@ -292,14 +320,14 @@
         <article class="zone-card ${active ? 'active' : ''}" data-zone-id="${zone.id}">
           <div class="zone-cover">
             <img src="${zone.coverPhoto}" alt="${zone.name}" loading="lazy" />
-            <span class="zone-cover-badge">${zone.icon} ${active ? '현재 위치' : `${zone.visitors}마리 접속`}</span>
+            <span class="zone-cover-badge">${zone.icon} ${active ? '산책 중' : `${zone.visitors}마리 접속`}</span>
           </div>
           <div class="zone-content">
             <h3 class="zone-title">${zone.name}</h3>
             <p class="zone-desc">${zone.desc}</p>
             <div class="zone-footer">
-              <span>🟢 실시간 산책 가능</span>
-              <span>${active ? '입장 중 ✓' : '이동하기 →'}</span>
+              <span>🟢 2.5D 실사 산책로</span>
+              <span>${active ? '현재 위치 ✓' : '산책하러 가기 →'}</span>
             </div>
           </div>
         </article>
@@ -315,35 +343,37 @@
         renderZoneHeader();
         renderZones();
         const zone = DATA.ZONES.find((z) => z.id === nextId);
-        appendChat('🐾 시스템', `${zone.name}(으)로 이동했습니다.`);
-        showToast(`${zone.icon} ${zone.name}에 입장했어요!`);
+        appendChat('🐾 시스템', `${zone.name}(으)로 산책 코스를 변경했습니다.`);
+        showToast(`${zone.icon} ${zone.name} 산책을 시작해요!`);
         document.getElementById('world').scrollIntoView({ behavior: 'smooth' });
       });
     });
   }
 
-  // Avatar Studio Preview
+  // Avatar Studio Full-Body Real Sprite Preview
   function renderPreviewCanvas() {
     const ctx = el.previewCanvas.getContext('2d');
     const w = el.previewCanvas.width;
     const h = el.previewCanvas.height;
     ctx.clearRect(0, 0, w, h);
 
-    ctx.fillStyle = 'rgba(255, 122, 89, 0.12)';
-    ctx.beginPath();
-    ctx.ellipse(w / 2, h * 0.74, 78, 22, 0, 0, Math.PI * 2);
-    ctx.fill();
+    // Subtle grass/studio floor glow
+    const grad = ctx.createRadialGradient(w / 2, h * 0.78, 12, w / 2, h * 0.78, 125);
+    grad.addColorStop(0, 'rgba(99, 193, 116, 0.25)');
+    grad.addColorStop(1, 'rgba(99, 193, 116, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, w, h);
 
-    const bob = Math.sin(performance.now() * 0.004) * 0.5;
     drawPetCharacter(ctx, draftAvatar, {
       x: w / 2,
-      y: h * 0.65,
-      scale: 2.35,
-      bob,
+      y: h * 0.78,
+      scale: 1.45,
+      walkPhase: performance.now() * 0.006,
+      isMoving: true,
       facing: 1,
       isPlayer: false,
       showName: false,
-      mode: state.avatarMode
+      timeOfDay: 'day'
     });
     requestAnimationFrame(renderPreviewCanvas);
   }
@@ -357,7 +387,6 @@
     el.previewName.textContent = draftAvatar.name || '이름 없음';
     el.previewPersonality.textContent = draftAvatar.personality;
 
-    // Species buttons with real pet thumbnails
     el.speciesOptions.innerHTML = DATA.SPECIES.map(
       (sp) => `
       <button type="button" class="option-btn ${draftAvatar.species === sp.id ? 'active' : ''}" data-species="${sp.id}">
@@ -372,32 +401,30 @@
         const sp = DATA.SPECIES.find((s) => s.id === btn.dataset.species);
         if (!sp) return;
         draftAvatar.species = sp.id;
+        draftAvatar.spriteId = sp.defaultSprite;
         draftAvatar.photoUrl = sp.defaultPhoto;
-        getCachedImage(sp.defaultPhoto);
         renderStudioControls();
       });
     });
 
-    // Real Pexels Pet Portrait Picker
     el.photoPickerGrid.innerHTML = DATA.PET_PORTRAITS.map(
       (p) => `
-      <button type="button" class="photo-choice ${draftAvatar.photoUrl === p.url ? 'active' : ''}" data-photo-url="${p.url}" data-photo-species="${p.species}">
+      <button type="button" class="photo-choice ${draftAvatar.spriteId === p.spriteId ? 'active' : ''}" data-sprite-id="${p.spriteId}" data-photo-url="${p.url}" data-photo-species="${p.species}">
         <img src="${p.url}" alt="${p.label}" loading="lazy" />
         <span>${p.label}</span>
       </button>
     `
     ).join('');
 
-    el.photoPickerGrid.querySelectorAll('[data-photo-url]').forEach((btn) => {
+    el.photoPickerGrid.querySelectorAll('[data-sprite-id]').forEach((btn) => {
       btn.addEventListener('click', () => {
+        draftAvatar.spriteId = btn.dataset.spriteId;
         draftAvatar.photoUrl = btn.dataset.photoUrl;
         draftAvatar.species = btn.dataset.photoSpecies;
-        getCachedImage(draftAvatar.photoUrl);
         renderStudioControls();
       });
     });
 
-    // Colors
     el.colorSwatches.innerHTML = DATA.COLORS.map(
       (c) => `
       <button
@@ -418,7 +445,6 @@
       });
     });
 
-    // Accessories
     el.accessoryOptions.innerHTML = DATA.ACCESSORIES.map((acc) => {
       const unlocked = isAccessoryUnlocked(acc);
       return `
@@ -445,7 +471,6 @@
       });
     });
 
-    // Personalities
     el.personalityOptions.innerHTML = DATA.PERSONALITIES.map(
       (p) => `
       <button type="button" class="chip-btn ${draftAvatar.personality === p ? 'active' : ''}" data-personality="${p}">
@@ -472,10 +497,10 @@
       state.avatar = { ...draftAvatar };
       DATA.saveState(state);
       world.updatePlayerAvatar(state.avatar);
-      world.triggerEmote('✨', '변신 완료!');
+      world.triggerEmote('✨', '새 모습으로 산책 출발!');
       renderTopBar();
-      el.saveFeedback.textContent = '✓ 광장 실사 아바타에 즉시 반영되었어요!';
-      showToast('✨ 실사 아바타가 광장에 적용되었습니다!');
+      el.saveFeedback.textContent = '✓ 산책로 실사 반려동물에 즉시 반영되었어요!';
+      showToast('✨ 실사 반려동물이 산책로에 적용되었습니다!');
       setTimeout(() => (el.saveFeedback.textContent = ''), 2500);
     });
 
@@ -483,7 +508,7 @@
     renderPreviewCanvas();
   }
 
-  // Shop with Real Pexels Photos
+  // Shop
   function renderShop() {
     const items =
       activeShopCategory === 'all'
@@ -567,13 +592,12 @@
     renderShop();
   }
 
-  // Community with Real Pexels Photos
   function renderComposerPhotos() {
     const choices = [
-      DATA.PEXELS_PHOTOS.dogPark,
+      DATA.PEXELS_PHOTOS.walkPark,
       DATA.PEXELS_PHOTOS.catCafe,
-      DATA.PEXELS_PHOTOS.rabbitGray,
-      DATA.PEXELS_PHOTOS.flowerMeadow
+      DATA.PEXELS_PHOTOS.walkGarden,
+      DATA.PEXELS_PHOTOS.walkArena
     ];
     el.composerPhotoRow.innerHTML = choices
       .map(

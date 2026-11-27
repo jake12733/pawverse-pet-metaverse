@@ -1,7 +1,14 @@
 window.PAWVERSE_DATA = (() => {
-  const STORAGE_KEY = 'pawverse_state_v2';
+  const STORAGE_KEY = 'pawverse_state_v3';
 
   const PEXELS_PHOTOS = {
+    // High-res walkable scenic park/cafe/garden/meadow landscapes (verified on Pexels)
+    walkPark: 'https://images.pexels.com/photos/37989321/pexels-photo-37989321/free-photo-of-lush-green-park-pathway-in-summer-season.jpeg?auto=compress&cs=tinysrgb&w=1600',
+    walkCafe: 'https://images.pexels.com/photos/32032971/pexels-photo-32032971/free-photo-of-charming-outdoor-cafe-terrace-in-hauts-de-france.jpeg?auto=compress&cs=tinysrgb&w=1600',
+    walkGarden: 'https://images.pexels.com/photos/28900031/pexels-photo-28900031/free-photo-of-lush-pathway-in-blooming-garden-archway.jpeg?auto=compress&cs=tinysrgb&w=1600',
+    walkArena: 'https://images.pexels.com/photos/40467626/pexels-photo-40467626/free-photo-of-sunny-day-in-open-green-park-landscape.jpeg?auto=compress&cs=tinysrgb&w=1600',
+
+    // Realistic pet portraits & lifestyle photography (verified on Pexels)
     dogGolden: 'https://images.pexels.com/photos/12538668/pexels-photo-12538668.jpeg?auto=compress&cs=tinysrgb&w=800',
     dogBrown: 'https://images.pexels.com/photos/29668631/pexels-photo-29668631/free-photo-of-cute-brown-dog-relaxing-in-green-field-outdoors.jpeg?auto=compress&cs=tinysrgb&w=800',
     dogPark: 'https://images.pexels.com/photos/13696874/pexels-photo-13696874.jpeg?auto=compress&cs=tinysrgb&w=900',
@@ -17,6 +24,74 @@ window.PAWVERSE_DATA = (() => {
     petTreats: 'https://images.pexels.com/photos/8121142/pexels-photo-8121142.jpeg?auto=compress&cs=tinysrgb&w=800',
     flowerMeadow: 'https://images.pexels.com/photos/7813243/pexels-photo-7813243.jpeg?auto=compress&cs=tinysrgb&w=900'
   };
+
+  // Transparent full-body photorealistic walking sprites with calibrated anatomy anchors
+  // Anchors are normalized relative to sprite box (origin = bottom-center of paws, facing right)
+  const PET_SPRITES = {
+    dog_golden: {
+      id: 'dog_golden',
+      species: 'dog',
+      label: '골든 리트리버',
+      spriteUrl: './assets/pets/dog_golden.png',
+      thumbUrl: PEXELS_PHOTOS.dogGolden,
+      baseHeight: 136,
+      neckAnchor: { x: 0.23, y: -0.63 },
+      headAnchor: { x: 0.30, y: -0.94 },
+      eyeAnchor: { x: 0.36, y: -0.78 }
+    },
+    dog_brown: {
+      id: 'dog_brown',
+      species: 'dog',
+      label: '초코 토이푸들',
+      spriteUrl: './assets/pets/dog_brown.png',
+      thumbUrl: PEXELS_PHOTOS.dogBrown,
+      baseHeight: 118,
+      neckAnchor: { x: 0.24, y: -0.58 },
+      headAnchor: { x: 0.28, y: -0.95 },
+      eyeAnchor: { x: 0.35, y: -0.76 }
+    },
+    cat_ginger: {
+      id: 'cat_ginger',
+      species: 'cat',
+      label: '치즈 태비냥',
+      spriteUrl: './assets/pets/cat_ginger.png',
+      thumbUrl: PEXELS_PHOTOS.catGinger,
+      baseHeight: 108,
+      neckAnchor: { x: 0.31, y: -0.49 },
+      headAnchor: { x: 0.38, y: -0.74 },
+      eyeAnchor: { x: 0.42, y: -0.60 }
+    },
+    rabbit_white: {
+      id: 'rabbit_white',
+      species: 'rabbit',
+      label: '크림 아기토끼',
+      spriteUrl: './assets/pets/rabbit_white.png',
+      thumbUrl: PEXELS_PHOTOS.rabbitGray,
+      baseHeight: 84,
+      neckAnchor: { x: 0.28, y: -0.45 },
+      headAnchor: { x: 0.31, y: -0.95 },
+      eyeAnchor: { x: 0.38, y: -0.65 }
+    },
+    hamster_cream: {
+      id: 'hamster_cream',
+      species: 'hamster',
+      label: '골든 햄스터',
+      spriteUrl: './assets/pets/hamster_cream.png',
+      thumbUrl: PEXELS_PHOTOS.hamsterWhite,
+      baseHeight: 62,
+      neckAnchor: { x: 0.26, y: -0.42 },
+      headAnchor: { x: 0.28, y: -0.94 },
+      eyeAnchor: { x: 0.35, y: -0.66 }
+    }
+  };
+
+  const PET_PORTRAITS = [
+    { id: 'dog_golden', species: 'dog', label: '골든 리트리버', spriteId: 'dog_golden', url: PEXELS_PHOTOS.dogGolden },
+    { id: 'dog_brown', species: 'dog', label: '초코 토이푸들', spriteId: 'dog_brown', url: PEXELS_PHOTOS.dogBrown },
+    { id: 'cat_ginger', species: 'cat', label: '치즈 고양이', spriteId: 'cat_ginger', url: PEXELS_PHOTOS.catGinger },
+    { id: 'rabbit_white', species: 'rabbit', label: '크림 토끼', spriteId: 'rabbit_white', url: PEXELS_PHOTOS.rabbitGray },
+    { id: 'hamster_cream', species: 'hamster', label: '골든 햄찌', spriteId: 'hamster_cream', url: PEXELS_PHOTOS.hamsterWhite }
+  ];
 
   const LIVE_VIDEOS = [
     {
@@ -81,23 +156,11 @@ window.PAWVERSE_DATA = (() => {
     }
   ];
 
-  const PET_PORTRAITS = [
-    { id: 'dog_golden', species: 'dog', label: '골든 퍼피', url: PEXELS_PHOTOS.dogGolden },
-    { id: 'dog_brown', species: 'dog', label: '초코 댕댕이', url: PEXELS_PHOTOS.dogBrown },
-    { id: 'dog_collie', species: 'dog', label: '보더콜리', url: PEXELS_PHOTOS.dogCollie },
-    { id: 'cat_ginger', species: 'cat', label: '치즈 냥이', url: PEXELS_PHOTOS.catGinger },
-    { id: 'cat_tabby', species: 'cat', label: '낮잠 태비냥', url: PEXELS_PHOTOS.catTabby },
-    { id: 'rabbit_gray', species: 'rabbit', label: '그레이 토끼', url: PEXELS_PHOTOS.rabbitGray },
-    { id: 'rabbit_grass', species: 'rabbit', label: '초원 토끼', url: PEXELS_PHOTOS.rabbitGrass },
-    { id: 'hamster_white', species: 'hamster', label: '스노우 햄찌', url: PEXELS_PHOTOS.hamsterWhite },
-    { id: 'hamster_couch', species: 'hamster', label: '소파 햄찌', url: PEXELS_PHOTOS.hamsterCouch }
-  ];
-
   const SPECIES = [
-    { id: 'dog', name: '강아지', emoji: '🐶', defaultPhoto: PEXELS_PHOTOS.dogGolden },
-    { id: 'cat', name: '고양이', emoji: '🐱', defaultPhoto: PEXELS_PHOTOS.catGinger },
-    { id: 'rabbit', name: '토끼', emoji: '🐰', defaultPhoto: PEXELS_PHOTOS.rabbitGray },
-    { id: 'hamster', name: '햄스터', emoji: '🐹', defaultPhoto: PEXELS_PHOTOS.hamsterWhite }
+    { id: 'dog', name: '강아지', emoji: '🐶', defaultSprite: 'dog_golden', defaultPhoto: PEXELS_PHOTOS.dogGolden },
+    { id: 'cat', name: '고양이', emoji: '🐱', defaultSprite: 'cat_ginger', defaultPhoto: PEXELS_PHOTOS.catGinger },
+    { id: 'rabbit', name: '토끼', emoji: '🐰', defaultSprite: 'rabbit_white', defaultPhoto: PEXELS_PHOTOS.rabbitGray },
+    { id: 'hamster', name: '햄스터', emoji: '🐹', defaultSprite: 'hamster_cream', defaultPhoto: PEXELS_PHOTOS.hamsterWhite }
   ];
 
   const COLORS = [
@@ -129,50 +192,42 @@ window.PAWVERSE_DATA = (() => {
   const ZONES = [
     {
       id: 'park',
-      name: '햇살 공원 광장',
+      name: '햇살 공원 산책로',
       icon: '🌳',
-      coverPhoto: PEXELS_PHOTOS.dogPark,
-      desc: '푸른 잔디와 중앙 분수대에서 강아지·고양이 친구들과 산책하는 메인 커뮤니티 광장입니다.',
-      ground: '#BFE8A9',
-      path: '#EFE5CF',
-      accent: '#63C174',
-      landmark: 'fountain',
+      walkPhoto: PEXELS_PHOTOS.walkPark,
+      coverPhoto: PEXELS_PHOTOS.walkPark,
+      horizonRatio: 0.56,
+      desc: '푸른 나무 그늘과 햇살이 내리쬐는 실사 공원 산책로를 따라 여유롭게 걸어보세요.',
       visitors: 64
     },
     {
       id: 'cafe',
       name: '포우 카페 테라스',
       icon: '☕',
-      coverPhoto: PEXELS_PHOTOS.catCafe,
-      desc: '아늑한 카페 테이블에서 수제 멍푸치노와 츄르를 나누며 쉬어가는 공간입니다.',
-      ground: '#EBD9C1',
-      path: '#D6BC9C',
-      accent: '#D98B5F',
-      landmark: 'cafe',
+      walkPhoto: PEXELS_PHOTOS.walkCafe,
+      coverPhoto: PEXELS_PHOTOS.walkCafe,
+      horizonRatio: 0.58,
+      desc: '따스한 우드 데크 야외 카페 테라스에서 반려동물 친구들과 여유로운 티타임을 즐겨보세요.',
       visitors: 31
     },
     {
       id: 'rainbow',
-      name: '무지개 메모리얼 가든',
-      icon: '🌈',
-      coverPhoto: PEXELS_PHOTOS.flowerMeadow,
-      desc: '들꽃이 만개한 정원에서 소중한 반려동물을 추억하고 편지를 남기는 힐링 공간입니다.',
-      ground: '#DCEAD7',
-      path: '#EFE9F7',
-      accent: '#9E8DF7',
-      landmark: 'rainbow',
+      name: '무지개 꽃길 정원',
+      icon: '🌸',
+      walkPhoto: PEXELS_PHOTOS.walkGarden,
+      coverPhoto: PEXELS_PHOTOS.walkGarden,
+      horizonRatio: 0.56,
+      desc: '형형색색 꽃이 만개한 아치형 정원 오솔길에서 힐링 산책과 추억을 나눠보세요.',
       visitors: 19
     },
     {
       id: 'arena',
-      name: '어질리티 아레나',
-      icon: '🏆',
-      coverPhoto: PEXELS_PHOTOS.dogCollie,
-      desc: '넓은 초원에서 전력 질주와 산책 챌린지를 즐기는 활기찬 액티비티 존입니다.',
-      ground: '#CFE39A',
-      path: '#F5D6A7',
-      accent: '#F5A623',
-      landmark: 'arena',
+      name: '어질리티 잔디광장',
+      icon: '🏃',
+      walkPhoto: PEXELS_PHOTOS.walkArena,
+      coverPhoto: PEXELS_PHOTOS.walkArena,
+      horizonRatio: 0.54,
+      desc: '드넓게 펼쳐진 초록빛 잔디 운동장에서 공 던지기와 전력 질주를 즐겨보세요!',
       visitors: 14
     }
   ];
@@ -182,49 +237,53 @@ window.PAWVERSE_DATA = (() => {
       id: 'npc-1',
       name: '초코',
       species: 'dog',
+      spriteId: 'dog_brown',
       color: '#7A5238',
       photoUrl: PEXELS_PHOTOS.dogBrown,
       accessory: 'scarf',
       personality: '간식 헌터',
-      x: 240,
-      y: 220,
-      lines: ['멍멍! 오늘 잔디밭 산책 최고야!', '혹시 고구마 간식 있어?', '실사 사진으로 만나니 반갑다~']
+      x: 245,
+      y: 385,
+      lines: ['멍멍! 공원 풀냄새 너무 좋다!', '저기서 공 던져줄 사람~ 🎾', '산책 나오니까 기분 최고야!']
     },
     {
       id: 'npc-2',
       name: '모찌',
       species: 'cat',
+      spriteId: 'cat_ginger',
       color: '#F6E7CB',
-      photoUrl: PEXELS_PHOTOS.catTabby,
+      photoUrl: PEXELS_PHOTOS.catGinger,
       accessory: 'ribbon',
       personality: '낮잠 장인',
-      x: 610,
-      y: 190,
-      lines: ['냥... 햇볕이 너무 따끈해', '포우 카페 테이블에 누워있을래', '그루밍 타임이야 ✨']
+      x: 685,
+      y: 375,
+      lines: ['냥... 나무 그늘 바람 시원해', '햇살 길 따라 천천히 걷는 중', '간식 냄새 나는데? 🐟']
     },
     {
       id: 'npc-3',
       name: '두부',
       species: 'rabbit',
-      color: '#A9B2BC',
+      spriteId: 'rabbit_white',
+      color: '#FFFFFF',
       photoUrl: PEXELS_PHOTOS.rabbitGray,
       accessory: 'sprout',
       personality: '활발한 탐험가',
-      x: 650,
-      y: 380,
-      lines: ['깡총깡총! 같이 뛰어놀자!', '새싹 핀 어때? 잘 어울리지?', '야채 먹방 영상 보고 왔어 🐰']
+      x: 590,
+      y: 455,
+      lines: ['깡총깡총! 같이 산책하자!', '새싹 핀 귀엽지? 🌱', '잔디밭이 폭신폭신해!']
     },
     {
       id: 'npc-4',
       name: '코코',
       species: 'hamster',
+      spriteId: 'hamster_cream',
       color: '#D8965A',
       photoUrl: PEXELS_PHOTOS.hamsterWhite,
       accessory: 'crown',
       personality: '동네 인싸',
-      x: 220,
-      y: 390,
-      lines: ['해바라기씨 나눠줄까?', '포우버스 광장에 온 걸 환영해!', '볼따구 빵빵 🐹']
+      x: 330,
+      y: 470,
+      lines: ['해바라기씨 챙겨왔어 🌻', '쪼꼬미지만 산책왕이야!', '오늘 1km 도전하자 🐾']
     }
   ];
 
@@ -236,7 +295,7 @@ window.PAWVERSE_DATA = (() => {
       name: '힙스터 선글라스',
       emoji: '🕶️',
       photoUrl: PEXELS_PHOTOS.dogCollie,
-      desc: '광장 최고 인싸로 만들어주는 시크한 미니 선글라스',
+      desc: '산책로 최고 인싸로 만들어주는 시크한 선글라스',
       price: 350,
       accessoryId: 'sunglasses'
     },
@@ -258,7 +317,7 @@ window.PAWVERSE_DATA = (() => {
       name: '파스텔 리본',
       emoji: '🎀',
       photoUrl: PEXELS_PHOTOS.rabbitGrass,
-      desc: '실사 프로필 위에서도 돋보이는 사랑스러운 리본',
+      desc: '실사 산책 캐릭터 위에서도 사랑스럽게 빛나는 리본',
       price: 250,
       accessoryId: 'ribbon'
     },
@@ -269,7 +328,7 @@ window.PAWVERSE_DATA = (() => {
       name: '수제 뼈다귀 비스킷 세트',
       emoji: '🦴',
       photoUrl: PEXELS_PHOTOS.petTreats,
-      desc: '구매 즉시 광장에서 행복 이모트와 함께 즐길 수 있어요',
+      desc: '구매 즉시 산책 중 행복 이모트와 함께 즐길 수 있어요',
       price: 120
     },
     {
@@ -289,7 +348,7 @@ window.PAWVERSE_DATA = (() => {
       name: '구름 푹신 펫 베드',
       emoji: '🛏️',
       photoUrl: PEXELS_PHOTOS.petBed,
-      desc: '비글도 푹 빠지는 푹신푹신한 호텔급 꿀잠 방석',
+      desc: '산책 후 꿀잠을 책임지는 호텔급 푹신 펫 베드',
       price: 420
     },
     {
@@ -320,9 +379,9 @@ window.PAWVERSE_DATA = (() => {
       category: '산책일기',
       author: '몽이네 집사',
       authorAvatar: PEXELS_PHOTOS.dogGolden,
-      photoUrl: PEXELS_PHOTOS.dogPark,
+      photoUrl: PEXELS_PHOTOS.walkPark,
       time: '12분 전',
-      content: '오늘 햇살 공원 광장에서 친구 리트리버랑 실컷 뛰어놀았어요! 실사 포토 아바타로 바꾸니까 우리 아이가 진짜 산책하는 느낌이에요 ✨',
+      content: '햇살 공원 산책로에서 리드줄 매고 공 던지기 한 판 했어요! 실제 공원 걷는 기분이라 너무 힐링되네요 ✨',
       likes: 24,
       liked: false
     },
@@ -342,9 +401,9 @@ window.PAWVERSE_DATA = (() => {
       category: '추억편지',
       author: '별이엄마',
       authorAvatar: PEXELS_PHOTOS.dogBrown,
-      photoUrl: PEXELS_PHOTOS.flowerMeadow,
+      photoUrl: PEXELS_PHOTOS.walkGarden,
       time: '2시간 전',
-      content: '들꽃 가득한 무지개 메모리얼 가든에 오늘도 들렀어. 그곳에서도 좋아하던 풀냄새 맡으며 행복하게 뛰어놀고 있길 바라.',
+      content: '꽃이 만개한 무지개 정원 길을 걸으며 우리 별이를 떠올렸어. 그곳에서도 행복하게 산책하고 있길 바라.',
       likes: 41,
       liked: false
     },
@@ -355,7 +414,7 @@ window.PAWVERSE_DATA = (() => {
       authorAvatar: PEXELS_PHOTOS.rabbitGray,
       photoUrl: PEXELS_PHOTOS.petBed,
       time: '4시간 전',
-      content: '아이템 샵에서 펫 베드랑 수제 간식 구경하다가 왕관까지 질렀어요 👑 라이브 캠 영상 틀어놓고 작업하면 힐링 그 자체!',
+      content: '산책할 때 공 던지기 버튼 누르면 강아지가 진짜 뛰어가서 물어와요 🎾 100m 걸을 때마다 코인도 주네요!',
       likes: 15,
       liked: false
     }
@@ -363,16 +422,18 @@ window.PAWVERSE_DATA = (() => {
 
   const DEFAULT_STATE = {
     coins: 1500,
+    walkMeters: 0,
     zoneId: 'park',
     timeOfDay: 'day',
-    avatarMode: 'photo',
+    leashEnabled: true,
     ownedItems: [],
     avatar: {
       name: '몽이',
       species: 'dog',
+      spriteId: 'dog_golden',
       color: '#F6E7CB',
       photoUrl: PEXELS_PHOTOS.dogGolden,
-      accessory: 'scarf',
+      accessory: 'none',
       personality: '활발한 탐험가'
     },
     posts: DEFAULT_POSTS
@@ -408,6 +469,7 @@ window.PAWVERSE_DATA = (() => {
 
   return {
     PEXELS_PHOTOS,
+    PET_SPRITES,
     LIVE_VIDEOS,
     PET_PORTRAITS,
     SPECIES,

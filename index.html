@@ -109,23 +109,20 @@
       <div class="container">
         <div class="section-header">
           <div>
-            <span class="section-badge">LIVE PLAZA</span>
-            <h2 id="currentZoneTitle">🌳 햇살 공원 광장</h2>
+            <span class="section-badge">REALISTIC 2.5D WALK</span>
+            <h2 id="currentZoneTitle">🌳 햇살 공원 산책로</h2>
             <p id="currentZoneDesc" class="section-subtitle">
-              바닥을 클릭하거나 방향키(WASD)로 이동해 보세요. 실사 포토 아바타와 일러스트 모드를 자유롭게 전환할 수 있어요!
+              산책로 바닥을 클릭하거나 방향키(WASD)로 이동해 보세요. 원근감과 리드줄, 공 던지기까지 진짜 산책처럼 즐길 수 있어요!
             </p>
           </div>
           <div class="world-toolbar">
-            <div class="segmented-control" role="group" aria-label="아바타 표시 스타일">
-              <button class="seg-btn active" data-avatar-mode="photo">📸 실사 포토</button>
-              <button class="seg-btn" data-avatar-mode="illust">🎨 일러스트</button>
-            </div>
+            <button class="btn btn-secondary btn-sm" id="leashToggleBtn" aria-pressed="true">🦮 리드줄 ON</button>
             <div class="segmented-control" role="group" aria-label="시간대 변경">
               <button class="seg-btn active" data-time="day">☀️ 낮</button>
               <button class="seg-btn" data-time="sunset">🌇 노을</button>
               <button class="seg-btn" data-time="night">🌙 밤</button>
             </div>
-            <button class="btn btn-outline btn-sm" id="centerCameraBtn">내 아이 찾기</button>
+            <button class="btn btn-outline btn-sm" id="centerCameraBtn">이리 와!</button>
           </div>
         </div>
 
@@ -137,18 +134,20 @@
                 <img class="hud-avatar-thumb" id="hudAvatarImg" src="https://images.pexels.com/photos/12538668/pexels-photo-12538668.jpeg?auto=compress&cs=tinysrgb&w=200" alt="내 반려동물" />
                 <span id="hudPetText">몽이 · 활발한 탐험가</span>
               </div>
-              <div class="hud-chip hud-hint">🖱️ 클릭 또는 WASD 이동</div>
+              <div class="hud-chip hud-walk-chip" id="hudWalkMeter">🐾 산책 0 m</div>
+              <div class="hud-chip hud-hint">🖱️ 바닥 클릭 · 더블클릭 점프 · WASD</div>
             </div>
 
-            <canvas id="metaverseCanvas" width="860" height="520" aria-label="반려동물 메타버스 광장 캔버스"></canvas>
+            <canvas id="metaverseCanvas" width="920" height="560" aria-label="반려동물 실사 산책 캔버스"></canvas>
 
-            <div class="emote-bar" role="toolbar" aria-label="이모트 액션">
-              <span class="emote-label">이모트</span>
-              <button class="emote-btn" data-emote="❤️" data-text="사랑해!">❤️ 하트</button>
-              <button class="emote-btn" data-emote="🎵" data-text="룰루랄라~">🎵 신남</button>
-              <button class="emote-btn" data-emote="🦴" data-text="간식 최고!">🦴 간식</button>
-              <button class="emote-btn" data-emote="⚡" data-text="우다다다!">⚡ 점프</button>
-              <button class="emote-btn" data-emote="👋" data-text="안녕 친구야!">👋 인사</button>
+            <div class="emote-bar" role="toolbar" aria-label="산책 인터랙션">
+              <span class="emote-label">산책 액션</span>
+              <button class="emote-btn emote-btn-accent" id="throwBallBtn">🎾 공 던지기</button>
+              <button class="emote-btn" data-emote="❤️" data-text="사랑해!">❤️ 쓰다듬기</button>
+              <button class="emote-btn" data-emote="🦴" data-text="간식 최고!">🦴 간식 주기</button>
+              <button class="emote-btn" data-emote="⚡" data-text="폴짝! 신나!">⚡ 점프</button>
+              <button class="emote-btn" data-emote="🎵" data-text="산책 너무 좋아~">🎵 콧노래</button>
+              <button class="emote-btn" data-emote="👋" data-text="안녕 친구야!">👋 인사하기</button>
             </div>
           </div>
 
