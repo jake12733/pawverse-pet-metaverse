@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PawVerse — 반려동물 메타버스 플랫폼</title>
+  <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+  <!-- Top Navigation -->
+  <header class="navbar">
+    <div class="container navbar-inner">
+      <a href="#world" class="brand">
+        <span class="brand-icon" aria-hidden="true">🐾</span>
+        <div class="brand-text">
+          <span class="brand-name">PawVerse</span>
+          <span class="brand-tag">반려동물 메타버스</span>
+        </div>
+      </a>
+
+      <nav class="nav-links" aria-label="주요 메뉴">
+        <a href="#world" class="nav-link active" data-section="world">광장 월드</a>
+        <a href="#zones" class="nav-link" data-section="zones">월드 맵</a>
+        <a href="#studio" class="nav-link" data-section="studio">아바타 스튜디오</a>
+        <a href="#shop" class="nav-link" data-section="shop">아이템 샵</a>
+        <a href="#community" class="nav-link" data-section="community">집사 광장</a>
+      </nav>
+
+      <div class="nav-actions">
+        <div class="status-pill online-pill" title="현재 접속 중인 반려동물 친구들">
+          <span class="pulse-dot"></span>
+          <span id="onlineCount">128</span>마리 산책 중
+        </div>
+        <div class="status-pill coin-pill" title="보유 포우코인">
+          <span>🪙</span>
+          <strong id="coinBalance">1,500</strong> P
+        </div>
+        <button class="btn btn-primary btn-sm" id="quickJumpBtn">월드 바로가기</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero Intro Strip -->
+    <section class="hero-strip">
+      <div class="container hero-inner">
+        <div class="hero-copy">
+          <span class="eyebrow">✨ Pet Metaverse Sandbox v0.1</span>
+          <h1>우리 아이와 함께 뛰어노는<br /><span class="highlight">따뜻한 반려동물 메타버스</span></h1>
+          <p class="hero-desc">
+            나만의 반려동물 아바타를 만들고, 햇살 공원·포우 카페·무지개 가든에서
+            다른 친구들과 실시간으로 산책하고 교감해 보세요.
+          </p>
+          <div class="hero-cta">
+            <a href="#world" class="btn btn-primary">광장 입장하기 🐾</a>
+            <a href="#studio" class="btn btn-secondary">내 아이 꾸미기</a>
+          </div>
+        </div>
+        <div class="hero-metrics">
+          <div class="metric-card">
+            <span class="metric-value">4개</span>
+            <span class="metric-label">테마 월드 존</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-value">실시간</span>
+            <span class="metric-label">산책 &amp; 이모트</span>
+          </div>
+          <div class="metric-card">
+            <span class="metric-value">커스텀</span>
+            <span class="metric-label">아바타 &amp; 아이템</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 1: Interactive Metaverse World -->
+    <section id="world" class="section world-section">
+      <div class="container">
+        <div class="section-header">
+          <div>
+            <span class="section-badge">LIVE PLAZA</span>
+            <h2 id="currentZoneTitle">햇살 공원 광장</h2>
+            <p id="currentZoneDesc" class="section-subtitle">
+              바닥을 클릭하거나 방향키(WASD)로 이동해 보세요. 친구 반려동물에게 다가가 인사할 수 있어요!
+            </p>
+          </div>
+          <div class="world-toolbar">
+            <div class="segmented-control" role="group" aria-label="시간대 변경">
+              <button class="seg-btn active" data-time="day">☀️ 낮</button>
+              <button class="seg-btn" data-time="sunset">🌇 노을</button>
+              <button class="seg-btn" data-time="night">🌙 밤</button>
+            </div>
+            <button class="btn btn-outline btn-sm" id="centerCameraBtn">내 아이 찾기</button>
+          </div>
+        </div>
+
+        <div class="world-layout">
+          <!-- Canvas Stage -->
+          <div class="canvas-card">
+            <div class="canvas-hud-top">
+              <div class="hud-chip" id="hudPetTag">🐶 몽이 · 활발한 탐험가</div>
+              <div class="hud-chip hud-hint">🖱️ 클릭 또는 WASD 이동</div>
+            </div>
+
+            <canvas id="metaverseCanvas" width="860" height="520" aria-label="반려동물 메타버스 광장 캔버스"></canvas>
+
+            <div class="emote-bar" role="toolbar" aria-label="이모트 액션">
+              <span class="emote-label">이모트</span>
+              <button class="emote-btn" data-emote="❤️" data-text="사랑해!">❤️ 하트</button>
+              <button class="emote-btn" data-emote="🎵" data-text="룰루랄라~">🎵 신남</button>
+              <button class="emote-btn" data-emote="🦴" data-text="간식 최고!">🦴 간식</button>
+              <button class="emote-btn" data-emote="⚡" data-text="우다다다!">⚡ 점프</button>
+              <button class="emote-btn" data-emote="👋" data-text="안녕 친구야!">👋 인사</button>
+            </div>
+          </div>
+
+          <!-- Side Panel: Plaza Chat & Nearby Pets -->
+          <aside class="plaza-sidebar">
+            <div class="sidebar-card nearby-card">
+              <div class="sidebar-header">
+                <h3>주변 친구들</h3>
+                <span class="badge-soft" id="nearbyCount">5마리</span>
+              </div>
+              <ul class="nearby-list" id="nearbyList"></ul>
+            </div>
+
+            <div class="sidebar-card chat-card">
+              <div class="sidebar-header">
+                <h3>광장 실시간 채팅</h3>
+                <span class="badge-soft">전체 채널</span>
+              </div>
+              <div class="chat-messages" id="chatMessages" aria-live="polite"></div>
+              <form class="chat-form" id="chatForm">
+                <input
+                  type="text"
+                  id="chatInput"
+                  placeholder="메시지를 입력하면 말풍선이 떠요..."
+                  maxlength="50"
+                  autocomplete="off"
+                />
+                <button type="submit" class="btn btn-primary btn-sm">전송</button>
+              </form>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 2: World Zones Directory -->
+    <section id="zones" class="section">
+      <div class="container">
+        <div class="section-header">
+          <div>
+            <span class="section-badge">WORLD MAP</span>
+            <h2>메타버스 월드 존 이동</h2>
+            <p class="section-subtitle">원하는 테마 공간을 선택하면 위 광장 월드가 즉시 전환됩니다.</p>
+          </div>
+        </div>
+        <div class="zones-grid" id="zonesGrid"></div>
+      </div>
+    </section>
+
+    <!-- Section 3: Pet Avatar Studio -->
+    <section id="studio" class="section section-tinted">
+      <div class="container">
+        <div class="section-header">
+          <div>
+            <span class="section-badge">AVATAR STUDIO</span>
+            <h2>내 반려동물 아바타 꾸미기</h2>
+            <p class="section-subtitle">종류, 털 색상, 액세서리를 골라 나만의 메타버스 캐릭터를 만들어 보세요.</p>
+          </div>
+        </div>
+
+        <div class="studio-layout">
+          <div class="studio-preview-card">
+            <div class="preview-stage">
+              <canvas id="previewCanvas" width="320" height="300" aria-label="아바타 미리보기"></canvas>
+            </div>
+            <div class="preview-meta">
+              <h3 id="previewName">몽이</h3>
+              <span class="preview-personality" id="previewPersonality">활발한 탐험가</span>
+            </div>
+            <button class="btn btn-primary btn-full" id="saveAvatarBtn">광장에 적용 및 저장하기 ✨</button>
+            <p class="save-feedback" id="saveFeedback" aria-live="polite"></p>
+          </div>
+
+          <div class="studio-controls-card">
+            <div class="control-group">
+              <label for="petNameInput">반려동물 이름</label>
+              <input type="text" id="petNameInput" maxlength="10" placeholder="예: 몽이, 코코, 두부" />
+            </div>
+
+            <div class="control-group">
+              <label>종류 선택</label>
+              <div class="option-grid" id="speciesOptions"></div>
+            </div>
+
+            <div class="control-group">
+              <label>털 색상</label>
+              <div class="swatch-row" id="colorSwatches"></div>
+            </div>
+
+            <div class="control-group">
+              <label>액세서리 <span class="hint-inline">(샵에서 추가 잠금 해제 가능)</span></label>
+              <div class="option-grid" id="accessoryOptions"></div>
+            </div>
+
+            <div class="control-group">
+              <label>성격 태그</label>
+              <div class="chip-row" id="personalityOptions"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Item Shop -->
+    <section id="shop" class="section">
+      <div class="container">
+        <div class="section-header">
+          <div>
+            <span class="section-badge">PAW SHOP</span>
+            <h2>아이템 &amp; 액세서리 샵</h2>
+            <p class="section-subtitle">포우코인으로 액세서리와 간식을 구매하고 아바타에 바로 착용해 보세요.</p>
+          </div>
+          <div class="filter-tabs" id="shopFilters">
+            <button class="filter-btn active" data-category="all">전체</button>
+            <button class="filter-btn" data-category="accessory">액세서리</button>
+            <button class="filter-btn" data-category="treat">간식 &amp; 소모품</button>
+            <button class="filter-btn" data-category="furniture">마이룸 가구</button>
+          </div>
+        </div>
+
+        <div class="shop-grid" id="shopGrid"></div>
+      </div>
+    </section>
+
+    <!-- Section 5: Community & Rainbow Guestbook -->
+    <section id="community" class="section section-tinted">
+      <div class="container">
+        <div class="section-header">
+          <div>
+            <span class="section-badge">COMMUNITY</span>
+            <h2>집사 광장 &amp; 추억 방명록</h2>
+            <p class="section-subtitle">산책 일기, 모임 모집, 무지개다리 편지까지 따뜻한 이야기를 나눠보세요.</p>
+          </div>
+        </div>
+
+        <div class="community-layout">
+          <form class="composer-card" id="postForm">
+            <h3>새 글 남기기</h3>
+            <div class="control-group">
+              <label for="postCategory">말머리</label>
+              <select id="postCategory">
+                <option value="산책일기">🐾 산책일기</option>
+                <option value="모임모집">🎉 모임모집</option>
+                <option value="추억편지">🌈 무지개 편지</option>
+                <option value="꿀팁공유">💡 집사꿀팁</option>
+              </select>
+            </div>
+            <div class="control-group">
+              <label for="postContent">내용</label>
+              <textarea id="postContent" rows="4" maxlength="200" placeholder="오늘 우리 아이와 있었던 이야기를 들려주세요..." required></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">게시글 등록하기</button>
+          </form>
+
+          <div class="feed-list" id="communityFeed"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div>
+        <div class="brand-name">🐾 PawVerse</div>
+        <p class="footer-desc">반려동물과 보호자를 잇는 차세대 소셜 메타버스 플랫폼 프로토타입</p>
+      </div>
+      <div class="footer-links">
+        <span>확장 가이드: WebSocket 멀티플레이어 · Three.js 3D 전환 · 백엔드 API 연동 준비 완료</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="./js/data.js" defer></script>
+  <script src="./js/worldCanvas.js" defer></script>
+  <script src="./js/app.js" defer></script>
+</body>
+</html>
