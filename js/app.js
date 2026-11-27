@@ -1,19 +1,26 @@
 (() => {
   const DATA = window.PAWVERSE_DATA;
-  const { WorldEngine, drawPetCharacter } = window.PawVerseWorld;
+  const { WorldEngine, drawPetCharacter, getCachedImage } = window.PawVerseWorld;
 
   const state = DATA.loadState();
   let draftAvatar = { ...state.avatar };
   let activeShopCategory = 'all';
+  let activeHeroVideoId = DATA.LIVE_VIDEOS[0].id;
+  let selectedPostPhoto = DATA.PEXELS_PHOTOS.dogPark;
 
-  // DOM References
   const el = {
     coinBalance: document.getElementById('coinBalance'),
-    onlineCount: document.getElementById('onlineCount'),
     quickJumpBtn: document.getElementById('quickJumpBtn'),
+    heroVideo: document.getElementById('heroVideo'),
+    heroVideoMeta: document.getElementById('heroVideoMeta'),
+    heroVideoTitle: document.getElementById('heroVideoTitle'),
+    heroVideoDesc: document.getElementById('heroVideoDesc'),
+    heroPlayToggle: document.getElementById('heroPlayToggle'),
+    heroChannelBar: document.getElementById('heroChannelBar'),
     currentZoneTitle: document.getElementById('currentZoneTitle'),
     currentZoneDesc: document.getElementById('currentZoneDesc'),
-    hudPetTag: document.getElementById('hudPetTag'),
+    hudAvatarImg: document.getElementById('hudAvatarImg'),
+    hudPetText: document.getElementById('hudPetText'),
     metaverseCanvas: document.getElementById('metaverseCanvas'),
     centerCameraBtn: document.getElementById('centerCameraBtn'),
     nearbyList: document.getElementById('nearbyList'),
@@ -21,12 +28,14 @@
     chatMessages: document.getElementById('chatMessages'),
     chatForm: document.getElementById('chatForm'),
     chatInput: document.getElementById('chatInput'),
+    videoGrid: document.getElementById('videoGrid'),
     zonesGrid: document.getElementById('zonesGrid'),
     previewCanvas: document.getElementById('previewCanvas'),
     previewName: document.getElementById('previewName'),
     previewPersonality: document.getElementById('previewPersonality'),
     petNameInput: document.getElementById('petNameInput'),
     speciesOptions: document.getElementById('speciesOptions'),
+    photoPickerGrid: document.getElementById('photoPickerGrid'),
     colorSwatches: document.getElementById('colorSwatches'),
     accessoryOptions: document.getElementById('accessoryOptions'),
     personalityOptions: document.getElementById('personalityOptions'),
@@ -36,12 +45,18 @@
     shopGrid: document.getElementById('shopGrid'),
     postForm: document.getElementById('postForm'),
     postCategory: document.getElementById('postCategory'),
+    composerPhotoRow: document.getElementById('composerPhotoRow'),
     postContent: document.getElementById('postContent'),
     communityFeed: document.getElementById('communityFeed'),
+    videoModal: document.getElementById('videoModal'),
+    modalVideoTitle: document.getElementById('modalVideoTitle'),
+    modalVideoDesc: document.getElementById('modalVideoDesc'),
+    modalVideoPlayer: document.getElementById('modalVideoPlayer'),
+    modalPexelsLink: document.getElementById('modalPexelsLink'),
+    closeVideoModal: document.getElementById('closeVideoModal'),
     toast: document.getElementById('toast')
   };
 
-  // Toast helper
   let toastTimer = null;
   function showToast(message) {
     el.toast.textContent = message;
@@ -64,14 +79,117 @@
     })[ch]);
   }
 
+  // Preload portraits for instant Canvas rendering
+  DATA.PET_PORTRAITS.forEach((p) => getCachedImage(p.url));
+
+  // Hero Live Video Switcher
+  function initHeroVideo() {
+    function selectHeroVideo(videoId) {
+      const item = DATA.LIVE_VIDEOS.find((v) => v.id === videoId) || DATA.LIVE_VIDEOS[0];
+      activeHeroVideoId = item.id;
+      el.heroVideo.poster = item.posterUrl;
+      el.heroVideo.src = item.videoUrl;
+      el.heroVideo.play().catch(() => {});
+      el.heroVideoMeta.textContent = item.badge;
+      el.heroVideoTitle.textContent = item.title;
+      el.heroVideoDesc.textContent = item.desc;
+      el.heroPlayToggle.textContent = '⏸';
+
+      el.heroChannelBar.querySelectorAll('.channel-pill').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.videoId === item.id);
+      });
+    }
+
+    el.heroChannelBar.innerHTML = DATA.LIVE_VIDEOS.map(
+      (v) => `
+      <button type="button" class="channel-pill ${v.id === activeHeroVideoId ? 'active' : ''}" data-video-id="${v.id}">
+        ${v.tabLabel}
+      </button>
+    `
+    ).join('');
+
+    el.heroChannelBar.querySelectorAll('.channel-pill').forEach((btn) => {
+      btn.addEventListener('click', () => selectHeroVideo(btn.dataset.videoId));
+    });
+
+    el.heroPlayToggle.addEventListener('click', () => {
+      if (el.heroVideo.paused) {
+        el.heroVideo.play().catch(() => {});
+        el.heroPlayToggle.textContent = '⏸';
+      } else {
+        el.heroVideo.pause();
+        el.heroPlayToggle.textContent = '▶';
+      }
+    });
+  }
+
+  // Video Lounge Cards & Fullscreen Modal
+  function openVideoModal(video) {
+    el.modalVideoTitle.textContent = video.title;
+    el.modalVideoDesc.textContent = video.desc;
+    el.modalPexelsLink.href = video.pageUrl;
+    el.modalVideoPlayer.poster = video.posterUrl;
+    el.modalVideoPlayer.src = video.videoUrl;
+    el.videoModal.hidden = false;
+    el.modalVideoPlayer.play().catch(() => {});
+  }
+
+  function closeModal() {
+    el.videoModal.hidden = true;
+    el.modalVideoPlayer.pause();
+    el.modalVideoPlayer.removeAttribute('src');
+  }
+
+  function initVideoLounge() {
+    el.videoGrid.innerHTML = DATA.LIVE_VIDEOS.map(
+      (v) => `
+      <article class="video-card" data-modal-video="${v.id}">
+        <div class="video-card-media">
+          <video muted loop playsinline preload="metadata" poster="${v.posterUrl}">
+            <source src="${v.videoUrl}" type="video/mp4" />
+          </video>
+          <span class="video-card-badge">${v.badge}</span>
+          <span class="video-play-pill">▶ 크게 보기</span>
+        </div>
+        <div class="video-card-body">
+          <h3 class="video-card-title">${v.title}</h3>
+          <p class="video-card-desc">${v.desc}</p>
+        </div>
+      </article>
+    `
+    ).join('');
+
+    el.videoGrid.querySelectorAll('.video-card').forEach((card) => {
+      const vid = card.querySelector('video');
+      const item = DATA.LIVE_VIDEOS.find((v) => v.id === card.dataset.modalVideo);
+
+      card.addEventListener('mouseenter', () => {
+        vid.play().catch(() => {});
+      });
+      card.addEventListener('mouseleave', () => {
+        vid.pause();
+      });
+      card.addEventListener('click', () => {
+        if (item) openVideoModal(item);
+      });
+    });
+
+    el.closeVideoModal.addEventListener('click', closeModal);
+    el.videoModal.addEventListener('click', (e) => {
+      if (e.target === el.videoModal) closeModal();
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !el.videoModal.hidden) closeModal();
+    });
+  }
+
   // Initialize Metaverse World Engine
   const world = new WorldEngine(el.metaverseCanvas, state);
 
-  // Sync HUD & Top Bar
   function renderTopBar() {
     el.coinBalance.textContent = state.coins.toLocaleString('ko-KR');
-    const emoji = getSpeciesEmoji(state.avatar.species);
-    el.hudPetTag.textContent = `${emoji} ${state.avatar.name} · ${state.avatar.personality}`;
+    el.hudAvatarImg.src = state.avatar.photoUrl;
+    el.hudPetText.textContent = `${state.avatar.name} · ${state.avatar.personality}`;
   }
 
   function renderZoneHeader() {
@@ -80,16 +198,18 @@
     el.currentZoneDesc.textContent = `${zone.desc} 바닥을 클릭하거나 WASD로 이동해 보세요.`;
   }
 
-  // Nearby Pets List
+  // Nearby Pets with Real Pexels Thumbnails
   function renderNearbyPets() {
     el.nearbyCount.textContent = `${DATA.NPCS.length + 1}마리`;
     el.nearbyList.innerHTML = DATA.NPCS.map(
       (npc) => `
       <li class="nearby-item">
         <div class="nearby-pet-info">
-          <span class="pet-dot" style="background:${npc.color}; border:1px solid rgba(0,0,0,0.18)"></span>
-          <strong>${getSpeciesEmoji(npc.species)} ${npc.name}</strong>
-          <span style="font-size:11px; color:var(--text-muted)">${npc.personality}</span>
+          <img class="nearby-avatar" src="${npc.photoUrl}" alt="${escapeHtml(npc.name)}" loading="lazy" />
+          <div class="nearby-meta">
+            <strong>${getSpeciesEmoji(npc.species)} ${escapeHtml(npc.name)}</strong>
+            <span class="nearby-sub">${npc.personality}</span>
+          </div>
         </div>
         <button class="wave-btn" data-wave="${npc.id}">인사하기</button>
       </li>
@@ -97,9 +217,7 @@
     ).join('');
 
     el.nearbyList.querySelectorAll('[data-wave]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        world.waveToNpc(btn.dataset.wave);
-      });
+      btn.addEventListener('click', () => world.waveToNpc(btn.dataset.wave));
     });
   }
 
@@ -114,9 +232,9 @@
   }
 
   function initChat() {
-    appendChat('🐾 시스템', '포우버스 햇살 공원 광장에 입장했어요!');
-    appendChat('🐶 초코', '안녕! 오늘 산책하기 딱 좋은 날이다~');
-    appendChat('🐱 모찌', '분수대 앞에서 같이 놀자 냥!');
+    appendChat('🐾 시스템', 'Pexels 실사 포토 아바타 모드로 햇살 공원에 입장했어요!');
+    appendChat('🐶 초코', '안녕! 오늘 잔디밭 산책하기 딱 좋은 날이야~');
+    appendChat('🐱 모찌', '위에 라이브 캠 영상도 진짜 힐링된다 냥!');
 
     el.chatForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -129,7 +247,7 @@
     });
   }
 
-  // Emotes & World Controls
+  // Emotes, Avatar Mode & Time of Day Controls
   function initWorldControls() {
     document.querySelectorAll('.emote-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -137,10 +255,22 @@
       });
     });
 
-    document.querySelectorAll('.seg-btn').forEach((btn) => {
+    document.querySelectorAll('[data-avatar-mode]').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.avatarMode === state.avatarMode);
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-avatar-mode]').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.avatarMode = btn.dataset.avatarMode;
+        world.setAvatarMode(state.avatarMode);
+        DATA.saveState(state);
+        showToast(state.avatarMode === 'photo' ? '📸 실사 포토 아바타 모드로 전환!' : '🎨 일러스트 아바타 모드로 전환!');
+      });
+    });
+
+    document.querySelectorAll('[data-time]').forEach((btn) => {
       btn.classList.toggle('active', btn.dataset.time === state.timeOfDay);
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.seg-btn').forEach((b) => b.classList.remove('active'));
+        document.querySelectorAll('[data-time]').forEach((b) => b.classList.remove('active'));
         btn.classList.add('active');
         state.timeOfDay = btn.dataset.time;
         world.setTimeOfDay(state.timeOfDay);
@@ -154,18 +284,23 @@
     });
   }
 
-  // World Zones Cards
+  // World Zones Cards with Real Pexels Cover Photos
   function renderZones() {
     el.zonesGrid.innerHTML = DATA.ZONES.map((zone) => {
       const active = zone.id === state.zoneId;
       return `
         <article class="zone-card ${active ? 'active' : ''}" data-zone-id="${zone.id}">
-          <div class="zone-icon" style="background:${zone.iconBg}">${zone.icon}</div>
-          <h3 class="zone-title">${zone.name}</h3>
-          <p class="zone-desc">${zone.desc}</p>
-          <div class="zone-footer">
-            <span>🟢 ${zone.visitors}마리 접속 중</span>
-            <span>${active ? '현재 위치 ✓' : '입장하기 →'}</span>
+          <div class="zone-cover">
+            <img src="${zone.coverPhoto}" alt="${zone.name}" loading="lazy" />
+            <span class="zone-cover-badge">${zone.icon} ${active ? '현재 위치' : `${zone.visitors}마리 접속`}</span>
+          </div>
+          <div class="zone-content">
+            <h3 class="zone-title">${zone.name}</h3>
+            <p class="zone-desc">${zone.desc}</p>
+            <div class="zone-footer">
+              <span>🟢 실시간 산책 가능</span>
+              <span>${active ? '입장 중 ✓' : '이동하기 →'}</span>
+            </div>
           </div>
         </article>
       `;
@@ -187,28 +322,28 @@
     });
   }
 
-  // Avatar Studio Preview Loop
+  // Avatar Studio Preview
   function renderPreviewCanvas() {
     const ctx = el.previewCanvas.getContext('2d');
     const w = el.previewCanvas.width;
     const h = el.previewCanvas.height;
     ctx.clearRect(0, 0, w, h);
 
-    // Subtle podium
     ctx.fillStyle = 'rgba(255, 122, 89, 0.12)';
     ctx.beginPath();
-    ctx.ellipse(w / 2, h * 0.72, 74, 22, 0, 0, Math.PI * 2);
+    ctx.ellipse(w / 2, h * 0.74, 78, 22, 0, 0, Math.PI * 2);
     ctx.fill();
 
     const bob = Math.sin(performance.now() * 0.004) * 0.5;
     drawPetCharacter(ctx, draftAvatar, {
       x: w / 2,
       y: h * 0.65,
-      scale: 2.4,
+      scale: 2.35,
       bob,
       facing: 1,
       isPlayer: false,
-      showName: false
+      showName: false,
+      mode: state.avatarMode
     });
     requestAnimationFrame(renderPreviewCanvas);
   }
@@ -222,24 +357,47 @@
     el.previewName.textContent = draftAvatar.name || '이름 없음';
     el.previewPersonality.textContent = draftAvatar.personality;
 
-    // Species
+    // Species buttons with real pet thumbnails
     el.speciesOptions.innerHTML = DATA.SPECIES.map(
       (sp) => `
       <button type="button" class="option-btn ${draftAvatar.species === sp.id ? 'active' : ''}" data-species="${sp.id}">
-        <span class="opt-emoji">${sp.emoji}</span>
-        <span>${sp.name}</span>
+        <img class="opt-thumb" src="${sp.defaultPhoto}" alt="${sp.name}" loading="lazy" />
+        <span>${sp.emoji} ${sp.name}</span>
       </button>
     `
     ).join('');
 
     el.speciesOptions.querySelectorAll('[data-species]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        draftAvatar.species = btn.dataset.species;
+        const sp = DATA.SPECIES.find((s) => s.id === btn.dataset.species);
+        if (!sp) return;
+        draftAvatar.species = sp.id;
+        draftAvatar.photoUrl = sp.defaultPhoto;
+        getCachedImage(sp.defaultPhoto);
         renderStudioControls();
       });
     });
 
-    // Fur colors
+    // Real Pexels Pet Portrait Picker
+    el.photoPickerGrid.innerHTML = DATA.PET_PORTRAITS.map(
+      (p) => `
+      <button type="button" class="photo-choice ${draftAvatar.photoUrl === p.url ? 'active' : ''}" data-photo-url="${p.url}" data-photo-species="${p.species}">
+        <img src="${p.url}" alt="${p.label}" loading="lazy" />
+        <span>${p.label}</span>
+      </button>
+    `
+    ).join('');
+
+    el.photoPickerGrid.querySelectorAll('[data-photo-url]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        draftAvatar.photoUrl = btn.dataset.photoUrl;
+        draftAvatar.species = btn.dataset.photoSpecies;
+        getCachedImage(draftAvatar.photoUrl);
+        renderStudioControls();
+      });
+    });
+
+    // Colors
     el.colorSwatches.innerHTML = DATA.COLORS.map(
       (c) => `
       <button
@@ -316,8 +474,8 @@
       world.updatePlayerAvatar(state.avatar);
       world.triggerEmote('✨', '변신 완료!');
       renderTopBar();
-      el.saveFeedback.textContent = '✓ 광장 캐릭터에 즉시 반영되었어요!';
-      showToast('✨ 아바타가 광장에 적용되었습니다!');
+      el.saveFeedback.textContent = '✓ 광장 실사 아바타에 즉시 반영되었어요!';
+      showToast('✨ 실사 아바타가 광장에 적용되었습니다!');
       setTimeout(() => (el.saveFeedback.textContent = ''), 2500);
     });
 
@@ -325,7 +483,7 @@
     renderPreviewCanvas();
   }
 
-  // Shop
+  // Shop with Real Pexels Photos
   function renderShop() {
     const items =
       activeShopCategory === 'all'
@@ -340,15 +498,20 @@
         const disabled = owned && !isConsumable ? 'disabled' : '';
         return `
           <article class="shop-card">
-            <div class="shop-thumb">${item.emoji}</div>
-            <span class="shop-cat">${item.categoryLabel}</span>
-            <h3 class="shop-title">${item.name}</h3>
-            <p class="shop-desc">${item.desc}</p>
-            <div class="shop-bottom">
-              <span class="shop-price">🪙 ${item.price} P</span>
-              <button class="btn ${owned && !isConsumable ? 'btn-secondary' : 'btn-primary'} btn-sm" data-buy="${item.id}" ${disabled}>
-                ${btnLabel}
-              </button>
+            <div class="shop-thumb-wrap">
+              <img src="${item.photoUrl}" alt="${item.name}" loading="lazy" />
+              <span class="shop-emoji-badge">${item.emoji}</span>
+            </div>
+            <div class="shop-body">
+              <span class="shop-cat">${item.categoryLabel}</span>
+              <h3 class="shop-title">${item.name}</h3>
+              <p class="shop-desc">${item.desc}</p>
+              <div class="shop-bottom">
+                <span class="shop-price">🪙 ${item.price} P</span>
+                <button class="btn ${owned && !isConsumable ? 'btn-secondary' : 'btn-primary'} btn-sm" data-buy="${item.id}" ${disabled}>
+                  ${btnLabel}
+                </button>
+              </div>
             </div>
           </article>
         `;
@@ -404,22 +567,53 @@
     renderShop();
   }
 
-  // Community Feed
+  // Community with Real Pexels Photos
+  function renderComposerPhotos() {
+    const choices = [
+      DATA.PEXELS_PHOTOS.dogPark,
+      DATA.PEXELS_PHOTOS.catCafe,
+      DATA.PEXELS_PHOTOS.rabbitGray,
+      DATA.PEXELS_PHOTOS.flowerMeadow
+    ];
+    el.composerPhotoRow.innerHTML = choices
+      .map(
+        (url, i) => `
+        <button type="button" class="composer-photo-btn ${selectedPostPhoto === url ? 'active' : ''}" data-post-photo="${url}" aria-label="사진 ${i + 1}">
+          <img src="${url}" alt="첨부 사진 선택 ${i + 1}" loading="lazy" />
+        </button>
+      `
+      )
+      .join('');
+
+    el.composerPhotoRow.querySelectorAll('[data-post-photo]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        selectedPostPhoto = btn.dataset.postPhoto;
+        renderComposerPhotos();
+      });
+    });
+  }
+
   function renderCommunity() {
     el.communityFeed.innerHTML = state.posts
       .map(
         (post) => `
         <article class="post-card">
-          <div class="post-meta">
-            <span class="post-tag">${post.category}</span>
-            <span>${post.time}</span>
-          </div>
-          <p class="post-body"></p>
-          <div class="post-footer">
-            <strong>${post.petEmoji} ${escapeHtml(post.author)}</strong>
-            <button class="like-btn ${post.liked ? 'liked' : ''}" data-like="${post.id}">
-              ❤️ ${post.likes}
-            </button>
+          ${post.photoUrl ? `<img class="post-photo" src="${post.photoUrl}" alt="커뮤니티 반려동물 사진" loading="lazy" />` : ''}
+          <div class="post-inner">
+            <div class="post-meta">
+              <span class="post-tag">${post.category}</span>
+              <span>${post.time}</span>
+            </div>
+            <p class="post-body"></p>
+            <div class="post-footer">
+              <span class="post-author-wrap">
+                <img class="post-author-img" src="${post.authorAvatar || DATA.PEXELS_PHOTOS.dogGolden}" alt="${escapeHtml(post.author)}" loading="lazy" />
+                <strong>${escapeHtml(post.author)}</strong>
+              </span>
+              <button class="like-btn ${post.liked ? 'liked' : ''}" data-like="${post.id}">
+                ❤️ ${post.likes}
+              </button>
+            </div>
           </div>
         </article>
       `
@@ -443,6 +637,7 @@
   }
 
   function initCommunity() {
+    renderComposerPhotos();
     el.postForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const content = el.postContent.value.trim();
@@ -452,7 +647,8 @@
         id: `post-${Date.now()}`,
         category: el.postCategory.value,
         author: `${state.avatar.name} 집사`,
-        petEmoji: getSpeciesEmoji(state.avatar.species),
+        authorAvatar: state.avatar.photoUrl,
+        photoUrl: selectedPostPhoto,
         time: '방금 전',
         content,
         likes: 1,
@@ -465,14 +661,13 @@
       el.postContent.value = '';
       renderTopBar();
       renderCommunity();
-      showToast('✍️ 글이 등록되었어요! (+30 P 보너스)');
+      showToast('✍️ 실사 포토 글이 등록되었어요! (+30 P 보너스)');
     });
     renderCommunity();
   }
 
-  // Active nav highlight on scroll
   function initNavHighlight() {
-    const sections = ['world', 'zones', 'studio', 'shop', 'community'];
+    const sections = ['world', 'videos', 'zones', 'studio', 'shop', 'community'];
     const links = document.querySelectorAll('.nav-link');
     window.addEventListener(
       'scroll',
@@ -490,6 +685,8 @@
   }
 
   // Boot
+  initHeroVideo();
+  initVideoLounge();
   renderTopBar();
   renderZoneHeader();
   renderNearbyPets();
