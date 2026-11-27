@@ -1,14 +1,12 @@
 window.PAWVERSE_DATA = (() => {
-  const STORAGE_KEY = 'pawverse_state_v3';
+  const STORAGE_KEY = 'pawverse_state_v4';
 
   const PEXELS_PHOTOS = {
-    // High-res walkable scenic park/cafe/garden/meadow landscapes (verified on Pexels)
     walkPark: 'https://images.pexels.com/photos/37989321/pexels-photo-37989321/free-photo-of-lush-green-park-pathway-in-summer-season.jpeg?auto=compress&cs=tinysrgb&w=1600',
     walkCafe: 'https://images.pexels.com/photos/32032971/pexels-photo-32032971/free-photo-of-charming-outdoor-cafe-terrace-in-hauts-de-france.jpeg?auto=compress&cs=tinysrgb&w=1600',
     walkGarden: 'https://images.pexels.com/photos/28900031/pexels-photo-28900031/free-photo-of-lush-pathway-in-blooming-garden-archway.jpeg?auto=compress&cs=tinysrgb&w=1600',
     walkArena: 'https://images.pexels.com/photos/40467626/pexels-photo-40467626/free-photo-of-sunny-day-in-open-green-park-landscape.jpeg?auto=compress&cs=tinysrgb&w=1600',
 
-    // Realistic pet portraits & lifestyle photography (verified on Pexels)
     dogGolden: 'https://images.pexels.com/photos/12538668/pexels-photo-12538668.jpeg?auto=compress&cs=tinysrgb&w=800',
     dogBrown: 'https://images.pexels.com/photos/29668631/pexels-photo-29668631/free-photo-of-cute-brown-dog-relaxing-in-green-field-outdoors.jpeg?auto=compress&cs=tinysrgb&w=800',
     dogPark: 'https://images.pexels.com/photos/13696874/pexels-photo-13696874.jpeg?auto=compress&cs=tinysrgb&w=900',
@@ -25,8 +23,6 @@ window.PAWVERSE_DATA = (() => {
     flowerMeadow: 'https://images.pexels.com/photos/7813243/pexels-photo-7813243.jpeg?auto=compress&cs=tinysrgb&w=900'
   };
 
-  // Transparent full-body photorealistic walking sprites with calibrated anatomy anchors
-  // Anchors are normalized relative to sprite box (origin = bottom-center of paws, facing right)
   const PET_SPRITES = {
     dog_golden: {
       id: 'dog_golden',
@@ -92,6 +88,30 @@ window.PAWVERSE_DATA = (() => {
     { id: 'rabbit_white', species: 'rabbit', label: '크림 토끼', spriteId: 'rabbit_white', url: PEXELS_PHOTOS.rabbitGray },
     { id: 'hamster_cream', species: 'hamster', label: '골든 햄찌', spriteId: 'hamster_cream', url: PEXELS_PHOTOS.hamsterWhite }
   ];
+
+  // Growth stages (Pillar 1)
+  const GROWTH_STAGES = [
+    { level: 1, minExp: 0, title: '아기 퍼피/키튼', scaleMult: 0.88, coat: '보송보송 아기털' },
+    { level: 2, minExp: 100, title: '호기심 꿈나무', scaleMult: 0.94, coat: '부드러운 솜털' },
+    { level: 3, minExp: 240, title: '활발한 청소년', scaleMult: 1.0, coat: '윤기 도는 건강털' },
+    { level: 4, minExp: 440, title: '든든한 단짝친구', scaleMult: 1.06, coat: '프리미엄 실크코트' },
+    { level: 5, minExp: 700, title: '완벽한 평생가족', scaleMult: 1.12, coat: '황금빛 엔젤코트 ✨' }
+  ];
+
+  function getGrowthInfo(exp) {
+    let current = GROWTH_STAGES[0];
+    let next = GROWTH_STAGES[1];
+    for (let i = 0; i < GROWTH_STAGES.length; i++) {
+      if (exp >= GROWTH_STAGES[i].minExp) {
+        current = GROWTH_STAGES[i];
+        next = GROWTH_STAGES[i + 1] || null;
+      }
+    }
+    const progress = next
+      ? Math.min(100, Math.round(((exp - current.minExp) / (next.minExp - current.minExp)) * 100))
+      : 100;
+    return { current, next, progress };
+  }
 
   const LIVE_VIDEOS = [
     {
@@ -164,12 +184,12 @@ window.PAWVERSE_DATA = (() => {
   ];
 
   const COLORS = [
-    { id: 'cream', name: '크림', hex: '#F6E7CB' },
-    { id: 'caramel', name: '카라멜', hex: '#D8965A' },
-    { id: 'choco', name: '초코', hex: '#7A5238' },
-    { id: 'white', name: '스노우', hex: '#FFFFFF' },
-    { id: 'gray', name: '실버그레이', hex: '#A9B2BC' },
-    { id: 'peach', name: '피치핑크', hex: '#F4B6B0' }
+    { id: 'coral', name: '코랄 리드', hex: '#E46A52' },
+    { id: 'cream', name: '크림 베이지', hex: '#D8A66C' },
+    { id: 'forest', name: '포레스트 그린', hex: '#34B37E' },
+    { id: 'lavender', name: '라벤더', hex: '#7F74F2' },
+    { id: 'navy', name: '네이비', hex: '#385170' },
+    { id: 'pink', name: '피치 핑크', hex: '#F28CA2' }
   ];
 
   const ACCESSORIES = [
@@ -244,7 +264,7 @@ window.PAWVERSE_DATA = (() => {
       personality: '간식 헌터',
       x: 245,
       y: 385,
-      lines: ['멍멍! 공원 풀냄새 너무 좋다!', '저기서 공 던져줄 사람~ 🎾', '산책 나오니까 기분 최고야!']
+      lines: ['멍멍! 공원 풀냄새 너무 좋다!', '저기 보물상자 있나 냄새 맡아볼래?', '산책 나오니까 기분 최고야!']
     },
     {
       id: 'npc-2',
@@ -257,7 +277,7 @@ window.PAWVERSE_DATA = (() => {
       personality: '낮잠 장인',
       x: 685,
       y: 375,
-      lines: ['냥... 나무 그늘 바람 시원해', '햇살 길 따라 천천히 걷는 중', '간식 냄새 나는데? 🐟']
+      lines: ['냥... 나무 그늘 바람 시원해', '가까이 오면 코 인사해 줄게', '간식 냄새 나는데? 🐟']
     },
     {
       id: 'npc-3',
@@ -283,7 +303,166 @@ window.PAWVERSE_DATA = (() => {
       personality: '동네 인싸',
       x: 330,
       y: 470,
-      lines: ['해바라기씨 챙겨왔어 🌻', '쪼꼬미지만 산책왕이야!', '오늘 1km 도전하자 🐾']
+      lines: ['해바라기씨 챙겨왔어 🌻', '쪼꼬미지만 산책왕이야!', '오늘 만보기 3천 걸음 도전하자 🐾']
+    }
+  ];
+
+  // Spatial.io-inspired Photorealistic Architectural Spaces & Interior Items
+  const ROOM_THEMES = [
+    {
+      id: 'gallery',
+      name: '🏛️ 모던 펫 갤러리',
+      bgUrl: './assets/spaces/space_gallery.jpg',
+      horizonRatio: 0.62,
+      wallScreen: { x: 472, y: 162, w: 185, h: 108 },
+      frames: [
+        { x: 252, y: 174, w: 82, h: 104 },
+        { x: 758, y: 174, w: 82, h: 104 }
+      ],
+      defaultWarmth: 12,
+      desc: '오크 우드 루버와 천창 채광이 어우러진 Spatial 스타일 반려동물 갤러리 라운지'
+    },
+    {
+      id: 'ocean',
+      name: '🌊 오션뷰 테라스 빌라',
+      bgUrl: './assets/spaces/space_ocean_villa.jpg',
+      horizonRatio: 0.64,
+      wallScreen: { x: 460, y: 156, w: 180, h: 104 },
+      frames: [
+        { x: 185, y: 176, w: 78, h: 98 },
+        { x: 740, y: 176, w: 78, h: 98 }
+      ],
+      defaultWarmth: 4,
+      desc: '탁 트인 에메랄드빛 바다와 우드 천장이 펼쳐진 오션뷰 모델하우스 펫 라운지'
+    },
+    {
+      id: 'atrium',
+      name: '🌅 선셋 아트리움 라운지',
+      bgUrl: './assets/spaces/space_terrace_atrium.jpg',
+      horizonRatio: 0.61,
+      wallScreen: { x: 460, y: 215, w: 172, h: 98 },
+      frames: [
+        { x: 220, y: 218, w: 78, h: 96 },
+        { x: 700, y: 218, w: 78, h: 96 }
+      ],
+      defaultWarmth: 24,
+      desc: '노을빛 원형 천창과 따뜻한 간접조명이 감싸는 감성 테라코타 아트리움 공간'
+    }
+  ];
+
+  const ROOM_ITEMS = [
+    { id: 'room_bed', name: '디자이너 펫 베드', emoji: '🛏️', photoUrl: PEXELS_PHOTOS.petBed, actionText: '방석 너무 폭신해 Zzz 💤', actionType: 'nap', free: true },
+    { id: 'room_bowl', name: '원목 펫 다이닝 바', emoji: '🥣', photoUrl: PEXELS_PHOTOS.petTreats, actionText: '사료 냠냠! 맛있어 🍖', actionType: 'eat', free: true },
+    { id: 'room_toy', name: '플레이 토이 바구니', emoji: '🎾', photoUrl: PEXELS_PHOTOS.dogPark, actionText: '장난감 갖고 노는 중! 🎾', actionType: 'play', free: true },
+    { id: 'room_plant', name: '몬스테라 대형 화분', emoji: '🪴', photoUrl: PEXELS_PHOTOS.flowerMeadow, actionText: '초록 화분 냄새 상쾌해 🌿', actionType: 'sniff', free: true },
+    { id: 'room_lamp', name: '북유럽 플로어 무드등', emoji: '🛋️', photoUrl: PEXELS_PHOTOS.catCafe, actionText: '따뜻한 조명 아래 힐링 ✨', actionType: 'nap', free: true },
+    { id: 'furn_cushion', name: '호텔급 푹신 방석', emoji: '☁️', photoUrl: PEXELS_PHOTOS.petBed, actionText: '구름 위에서 꿀잠 자는 중 ☁️', actionType: 'nap', free: false, shopId: 'furn_cushion' },
+    { id: 'furn_sofa', name: '패브릭 라운지 소파', emoji: '🛋️', photoUrl: PEXELS_PHOTOS.hamsterCouch, actionText: '소파 위가 내 지정석이야 🛋️', actionType: 'nap', free: false, shopId: 'furn_sofa' },
+    { id: 'furn_garden', name: '야생화 실내 화단', emoji: '🌼', photoUrl: PEXELS_PHOTOS.flowerMeadow, actionText: '킁킁~ 꽃향기 좋아 🌼', actionType: 'sniff', free: false, shopId: 'furn_garden' }
+  ];
+
+  // Pillar 5: Adoption Pre-Simulation Education Quests
+  const ADOPTION_QUESTS = [
+    {
+      id: 'quest_vaccine',
+      badge: '💉 예방접종 마스터',
+      title: '필수 예방접종 & 심장사상충 주기 알기',
+      desc: '어린 반려동물은 생후 6~8주부터 기초 종합백신(DHPPL/CVRP)과 광견병 접종, 매월 1회 심장사상충 예방이 필수입니다.',
+      question: '심장사상충 예방약은 보통 얼마나 자주 급여/도포해야 할까요?',
+      options: ['매월 1회 정기적으로', '1년에 한 번 겨울에만', '아플 때만 병원에서'],
+      correctIndex: 0,
+      reward: 100
+    },
+    {
+      id: 'quest_budget',
+      badge: '🏥 양육비 플래너',
+      title: '월 양육비 & 응급 의료비 시뮬레이션',
+      desc: '사료·배변패드·미용 등 고정비(월 평균 15~25만 원) 외에도, 노령기·응급 수술을 대비한 반려동물 비상금이나 펫보험 준비가 중요합니다.',
+      question: '책임 있는 반려생활을 위해 가장 권장되는 재정 준비 방법은?',
+      options: ['사료값만 최소한으로 준비한다', '고정 양육비 + 별도 응급 의료 비상금을 마련한다', '아프면 그때 고민한다'],
+      correctIndex: 1,
+      reward: 100
+    },
+    {
+      id: 'quest_anxiety',
+      badge: '🏠 분리불안 케어 전문가',
+      title: '분리불안 대처법 & 펫티켓 산책',
+      desc: '외출 전후 과도한 인사 대신 담담하게 행동하고, 노즈워크 장난감으로 혼자 있는 시간을 긍정적으로 학습시키면 분리불안을 완화할 수 있습니다.',
+      question: '반려동물의 분리불안 완화에 도움이 되는 올바른 훈련법은?',
+      options: ['외출할 때마다 미안하다고 10분간 안아준다', '짧은 외출부터 점진적으로 늘리며 노즈워크 보상을 준다', '혼자 짖을 때마다 크게 혼낸다'],
+      correctIndex: 1,
+      reward: 100
+    }
+  ];
+
+  // Pillar 5: Pet Sitter Care Exchange (품앗이)
+  const PET_SITTER_REQUESTS = [
+    {
+      id: 'sitter-1',
+      owner: '해피네 집사',
+      petName: '해피',
+      photoUrl: PEXELS_PHOTOS.dogCollie,
+      task: '야근 중이라 10분만 산책 & 물 급여 부탁드려요!',
+      reward: 45,
+      helped: false
+    },
+    {
+      id: 'sitter-2',
+      owner: '치즈맘',
+      petName: '나비',
+      photoUrl: PEXELS_PHOTOS.catCafe,
+      task: '잠시 외출했어요! 빗질이랑 츄르 하나만 챙겨주세요 🐱',
+      reward: 40,
+      helped: false
+    },
+    {
+      id: 'sitter-3',
+      owner: '토순아빠',
+      petName: '토순이',
+      photoUrl: PEXELS_PHOTOS.rabbitGrass,
+      task: '신선한 건초랑 당근 간식 한 번만 확인해 주세요 🥕',
+      reward: 35,
+      helped: false
+    }
+  ];
+
+  // Pillar 5: Real-world Custom Goods & O2O Commerce
+  const REAL_GOODS = [
+    {
+      id: 'goods_keyring',
+      name: '내 아이 그대로 아크릴 키링',
+      tag: '커스텀 제작',
+      priceWon: '12,900원',
+      discountCoin: 200,
+      discountWon: '3,000원 할인',
+      desc: '현재 꾸민 실사 반려동물 모습과 인식표 이름이 그대로 인쇄되는 양면 아크릴 키링'
+    },
+    {
+      id: 'goods_cushion',
+      name: '실사 포토 맞춤 쿠션',
+      tag: '인기 굿즈',
+      priceWon: '29,000원',
+      discountCoin: 400,
+      discountWon: '6,000원 할인',
+      desc: '우리 아이 실사 캐릭터를 부드러운 벨벳 원단에 담은 40cm 맞춤 쿠션'
+    },
+    {
+      id: 'goods_tag',
+      name: '실물 각인 황동 인식표',
+      tag: '안전 필수템',
+      priceWon: '18,500원',
+      discountCoin: 250,
+      discountWon: '4,000원 할인',
+      desc: '스튜디오에서 입력한 이름과 연락처가 레이저 각인되는 실제 목걸이 인식표'
+    },
+    {
+      id: 'goods_food',
+      name: '프리미엄 펫푸드 5,000원 할인권',
+      tag: 'O2O 커머스',
+      priceWon: '제휴몰 즉시 사용',
+      discountCoin: 300,
+      discountWon: '쿠폰 즉시 발급',
+      desc: '산책과 케어로 모은 포우코인을 실제 펫푸드·용품 구매 할인 쿠폰으로 교환'
     }
   ];
 
@@ -328,7 +507,7 @@ window.PAWVERSE_DATA = (() => {
       name: '수제 뼈다귀 비스킷 세트',
       emoji: '🦴',
       photoUrl: PEXELS_PHOTOS.petTreats,
-      desc: '구매 즉시 산책 중 행복 이모트와 함께 즐길 수 있어요',
+      desc: '포만감 +25 · 애정도 +10 · 산책 중 맛있게 먹어요',
       price: 120
     },
     {
@@ -338,37 +517,37 @@ window.PAWVERSE_DATA = (() => {
       name: '포우 카페 티타임 간식',
       emoji: '☕',
       photoUrl: PEXELS_PHOTOS.catCafe,
-      desc: '고양이와 강아지 모두가 좋아하는 프리미엄 펫 간식',
+      desc: '스트레스 -20 · 애정도 +15 프리미엄 펫 간식',
       price: 180
     },
     {
       id: 'furn_cushion',
       category: 'furniture',
       categoryLabel: '마이룸 가구',
-      name: '구름 푹신 펫 베드',
-      emoji: '🛏️',
+      name: '호텔급 푹신 방석',
+      emoji: '☁️',
       photoUrl: PEXELS_PHOTOS.petBed,
-      desc: '산책 후 꿀잠을 책임지는 호텔급 푹신 펫 베드',
+      desc: '마이 룸에 배치하면 반려동물이 스스로 올라가 꿀잠을 잡니다',
       price: 420
     },
     {
       id: 'furn_sofa',
       category: 'furniture',
       categoryLabel: '마이룸 가구',
-      name: '미니 패브릭 소파 하우스',
+      name: '미니 패브릭 소파',
       emoji: '🛋️',
       photoUrl: PEXELS_PHOTOS.hamsterCouch,
-      desc: '소동물과 반려묘를 위한 포근한 패브릭 소파 공간',
+      desc: '마이 룸 배치 시 자율 휴식 행동이 활성화되는 아늑한 소파',
       price: 580
     },
     {
       id: 'furn_garden',
       category: 'furniture',
       categoryLabel: '마이룸 가구',
-      name: '야생화 테라스 화단',
+      name: '야생화 실내 화분',
       emoji: '🌼',
       photoUrl: PEXELS_PHOTOS.flowerMeadow,
-      desc: '마이 룸 창가를 싱그러운 들꽃 정원으로 꾸며보세요',
+      desc: '마이 룸에 배치하면 반려동물이 다가와 꽃향기를 맡습니다',
       price: 490
     }
   ];
@@ -381,7 +560,7 @@ window.PAWVERSE_DATA = (() => {
       authorAvatar: PEXELS_PHOTOS.dogGolden,
       photoUrl: PEXELS_PHOTOS.walkPark,
       time: '12분 전',
-      content: '햇살 공원 산책로에서 리드줄 매고 공 던지기 한 판 했어요! 실제 공원 걷는 기분이라 너무 힐링되네요 ✨',
+      content: '오늘 만보기 2,500걸음 연동해서 햇살 공원 산책 완료! 숨겨진 보물상자도 찾고 리드줄 산책 너무 힐링돼요 ✨',
       likes: 24,
       liked: false
     },
@@ -392,7 +571,7 @@ window.PAWVERSE_DATA = (() => {
       authorAvatar: PEXELS_PHOTOS.catTabby,
       photoUrl: PEXELS_PHOTOS.catCafe,
       time: '45분 전',
-      content: '오늘 밤 9시에 포우 카페 테라스에서 냥집사 티타임 정모 열어요! 치즈냥·태비냥 모두 환영합니다 ☕🐾',
+      content: '오늘 밤 9시에 포우 카페 테라스에서 냥집사 티타임 & 펫 시터 품앗이 정모 열어요! ☕🐾',
       likes: 17,
       liked: false
     },
@@ -414,7 +593,7 @@ window.PAWVERSE_DATA = (() => {
       authorAvatar: PEXELS_PHOTOS.rabbitGray,
       photoUrl: PEXELS_PHOTOS.petBed,
       time: '4시간 전',
-      content: '산책할 때 공 던지기 버튼 누르면 강아지가 진짜 뛰어가서 물어와요 🎾 100m 걸을 때마다 코인도 주네요!',
+      content: '마이 룸에 방석이랑 장난감 바구니 배치해 두니까 강아지가 혼자 가서 놀고 낮잠도 자네요 🛏️ AI 교감 최고!',
       likes: 15,
       liked: false
     }
@@ -423,15 +602,66 @@ window.PAWVERSE_DATA = (() => {
   const DEFAULT_STATE = {
     coins: 1500,
     walkMeters: 0,
+    realStepsToday: 1240,
     zoneId: 'park',
     timeOfDay: 'day',
     leashEnabled: true,
     ownedItems: [],
+    completedQuests: [],
+    redeemedGoods: [],
+    helpedSitters: [],
+    stats: {
+      fullness: 82,
+      cleanliness: 86,
+      energy: 88,
+      affection: 74,
+      stress: 16
+    },
+    growth: {
+      exp: 65
+    },
+    memory: {
+      lastVisitTs: Date.now(),
+      visitCount: 1,
+      counts: {
+        feed: 0,
+        brush: 0,
+        bath: 0,
+        pet: 0,
+        walk: 0,
+        train: 0,
+        ball: 0
+      },
+      learnedSkills: {
+        sit: 1,
+        paw: 0,
+        jump: 1,
+        wait: 0
+      },
+      notes: ['오늘 처음 PawVerse에서 보호자님을 만났어요! 🐾']
+    },
+    myRoom: {
+      themeId: 'gallery',
+      warmth: 12,
+      spotlights: true,
+      showVideoWall: true,
+      videoIndex: 0,
+      galleryPhotos: [PEXELS_PHOTOS.dogGolden, PEXELS_PHOTOS.catCafe],
+      invitedSpriteIds: ['dog_brown', 'cat_ginger'],
+      customCatalog: [],
+      placed: [
+        { itemId: 'room_bed', x: 205, y: 410, scale: 1 },
+        { itemId: 'room_bowl', x: 470, y: 448, scale: 1 },
+        { itemId: 'room_toy', x: 725, y: 418, scale: 1 },
+        { itemId: 'room_plant', x: 118, y: 365, scale: 1.05 }
+      ]
+    },
     avatar: {
       name: '몽이',
+      tagText: 'PAW-0127',
       species: 'dog',
       spriteId: 'dog_golden',
-      color: '#F6E7CB',
+      color: '#E46A52',
       photoUrl: PEXELS_PHOTOS.dogGolden,
       accessory: 'none',
       personality: '활발한 탐험가'
@@ -447,11 +677,25 @@ window.PAWVERSE_DATA = (() => {
       return {
         ...structuredClone(DEFAULT_STATE),
         ...parsed,
-        avatar: {
-          ...DEFAULT_STATE.avatar,
-          ...(parsed.avatar || {})
+        stats: { ...DEFAULT_STATE.stats, ...(parsed.stats || {}) },
+        growth: { ...DEFAULT_STATE.growth, ...(parsed.growth || {}) },
+        memory: {
+          ...DEFAULT_STATE.memory,
+          ...(parsed.memory || {}),
+          counts: { ...DEFAULT_STATE.memory.counts, ...((parsed.memory && parsed.memory.counts) || {}) },
+          learnedSkills: { ...DEFAULT_STATE.memory.learnedSkills, ...((parsed.memory && parsed.memory.learnedSkills) || {}) },
+          notes: Array.isArray(parsed.memory && parsed.memory.notes) ? parsed.memory.notes : [...DEFAULT_STATE.memory.notes]
         },
+        myRoom: {
+          ...DEFAULT_STATE.myRoom,
+          ...(parsed.myRoom || {}),
+          placed: Array.isArray(parsed.myRoom && parsed.myRoom.placed) ? parsed.myRoom.placed : structuredClone(DEFAULT_STATE.myRoom.placed)
+        },
+        avatar: { ...DEFAULT_STATE.avatar, ...(parsed.avatar || {}) },
         ownedItems: Array.isArray(parsed.ownedItems) ? parsed.ownedItems : [],
+        completedQuests: Array.isArray(parsed.completedQuests) ? parsed.completedQuests : [],
+        redeemedGoods: Array.isArray(parsed.redeemedGoods) ? parsed.redeemedGoods : [],
+        helpedSitters: Array.isArray(parsed.helpedSitters) ? parsed.helpedSitters : [],
         posts: Array.isArray(parsed.posts) && parsed.posts.length ? parsed.posts : structuredClone(DEFAULT_POSTS)
       };
     } catch {
@@ -463,21 +707,28 @@ window.PAWVERSE_DATA = (() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
-      // Ignore storage quota errors
+      // Ignore quota errors
     }
   }
 
   return {
     PEXELS_PHOTOS,
     PET_SPRITES,
-    LIVE_VIDEOS,
     PET_PORTRAITS,
+    GROWTH_STAGES,
+    getGrowthInfo,
+    LIVE_VIDEOS,
     SPECIES,
     COLORS,
     ACCESSORIES,
     PERSONALITIES,
     ZONES,
     NPCS,
+    ROOM_THEMES,
+    ROOM_ITEMS,
+    ADOPTION_QUESTS,
+    PET_SITTER_REQUESTS,
+    REAL_GOODS,
     SHOP_ITEMS,
     loadState,
     saveState

@@ -1,5 +1,5 @@
 window.PawVerseWorld = (() => {
-  const { ZONES, NPCS, PET_SPRITES } = window.PAWVERSE_DATA;
+  const { ZONES, NPCS, PET_SPRITES, getGrowthInfo } = window.PAWVERSE_DATA;
 
   const imageCache = new Map();
   function getCachedImage(url) {
@@ -9,9 +9,7 @@ window.PawVerseWorld = (() => {
       return entry.loaded ? entry.img : null;
     }
     const img = new Image();
-    if (/^https?:\/\//i.test(url)) {
-      img.crossOrigin = 'anonymous';
-    }
+    if (/^https?:\/\//i.test(url)) img.crossOrigin = 'anonymous';
     const entry = { img, loaded: false };
     img.onload = () => {
       entry.loaded = true;
@@ -68,7 +66,6 @@ window.PawVerseWorld = (() => {
       ctx.closePath();
       ctx.fill();
       ctx.stroke();
-      // Little jewel
       ctx.fillStyle = '#FF5E57';
       ctx.beginPath();
       ctx.arc(0, -2, 2.2, 0, Math.PI * 2);
@@ -130,10 +127,6 @@ window.PawVerseWorld = (() => {
     ctx.restore();
   }
 
-  /**
-   * Draws a photorealistic full-body pet sprite with soft ground contact shadow,
-   * natural trotting bounce/rocking, breathing idle motion, and anatomy-anchored accessories.
-   */
   function drawPetCharacter(ctx, pet, opts = {}) {
     const {
       x = 0,
@@ -145,7 +138,8 @@ window.PawVerseWorld = (() => {
       facing = 1,
       isPlayer = false,
       showName = true,
-      timeOfDay = 'day'
+      timeOfDay = 'day',
+      pose = null // 'sit' | 'paw' | 'sleep' | 'happy' | 'belly' | 'tilt'
     } = opts;
 
     const spec = getSpriteSpec(pet);
@@ -155,24 +149,44 @@ window.PawVerseWorld = (() => {
     const aspect = img && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 1.32;
     const targetW = targetH * aspect;
 
-    // Lifelike gait: trot bounce + gentle stride tilt + subtle breathing when idle
     const now = performance.now() * 0.001;
     const strideSin = Math.sin(walkPhase);
-    const trotLift = isMoving ? Math.abs(strideSin) * 7.5 * scale : 0;
-    const strideTilt = isMoving ? strideSin * 0.048 * facing : Math.sin(now * 2.2) * 0.008;
-    const breathScaleY = isMoving ? 1 + Math.abs(strideSin) * 0.025 : 1 + Math.sin(now * 2.6) * 0.014;
-    const breathScaleX = isMoving ? 1 - Math.abs(strideSin) * 0.018 : 1 - Math.sin(now * 2.6) * 0.008;
+    let trotLift = isMoving ? Math.abs(strideSin) * 7.5 * scale : 0;
+    let strideTilt = isMoving ? strideSin * 0.048 * facing : Math.sin(now * 2.2) * 0.008;
+    let scaleXMod = isMoving ? 1 - Math.abs(strideSin) * 0.018 : 1 - Math.sin(now * 2.6) * 0.008;
+    let scaleYMod = isMoving ? 1 + Math.abs(strideSin) * 0.025 : 1 + Math.sin(now * 2.6) * 0.014;
+
+    // Expressive AI / Care / Training pose animations
+    if (pose === 'sit') {
+      scaleYMod *= 0.86;
+      scaleXMod *= 1.06;
+      strideTilt = -0.10 * facing;
+    } else if (pose === 'paw') {
+      strideTilt = -0.15 * facing;
+      trotLift += 6 * scale;
+    } else if (pose === 'sleep') {
+      scaleYMod *= 0.78;
+      scaleXMod *= 1.12;
+      strideTilt = 0.04 * facing;
+    } else if (pose === 'belly') {
+      strideTilt = Math.sin(now * 14) * 0.14;
+      trotLift += Math.abs(Math.sin(now * 8)) * 5 * scale;
+    } else if (pose === 'tilt') {
+      strideTilt = 0.14 * facing;
+    } else if (pose === 'happy') {
+      strideTilt = Math.sin(now * 16) * 0.09;
+      trotLift += Math.abs(Math.sin(now * 10)) * 7 * scale;
+    }
 
     const elevation = trotLift + jump;
 
-    // 1. Realistic multi-layer feathered ground contact shadow
+    // 1. Feathered ground contact shadow
     ctx.save();
     ctx.translate(x, y);
     const shadowScale = Math.max(0.55, 1 - elevation * 0.006);
     const shadowRx = targetW * 0.42 * shadowScale;
     const shadowRy = Math.max(6, targetH * 0.11 * shadowScale);
 
-    // Wide ambient shadow
     const grad = ctx.createRadialGradient(0, 0, shadowRx * 0.1, 0, 0, shadowRx);
     const baseOpacity = timeOfDay === 'night' ? 0.52 : 0.36;
     grad.addColorStop(0, `rgba(14, 18, 12, ${baseOpacity * shadowScale})`);
@@ -183,7 +197,6 @@ window.PawVerseWorld = (() => {
     ctx.ellipse(0, 0, shadowRx, shadowRy, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Subtle sunlit selection ring only for player (very refined, not loud)
     if (isPlayer) {
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
       ctx.lineWidth = 1.6;
@@ -195,14 +208,13 @@ window.PawVerseWorld = (() => {
     }
     ctx.restore();
 
-    // 2. Photorealistic Full-Body Pet Sprite
+    // 2. Full-body photorealistic pet sprite
     ctx.save();
     ctx.translate(x, y - elevation);
     ctx.rotate(strideTilt);
-    ctx.scale(facing * breathScaleX, breathScaleY);
+    ctx.scale(facing * scaleXMod, scaleYMod);
 
     if (img) {
-      // Subtle atmospheric color integration for sunset / night lighting
       if (timeOfDay === 'sunset') {
         ctx.filter = 'sepia(0.18) saturate(1.16) brightness(0.98)';
       } else if (timeOfDay === 'night') {
@@ -210,23 +222,24 @@ window.PawVerseWorld = (() => {
       }
       ctx.drawImage(img, -targetW / 2, -targetH + 4 * scale, targetW, targetH);
       ctx.filter = 'none';
-
-      // Anatomy-anchored accessory overlay
       drawAccessoryOnSprite(ctx, pet.accessory, targetW, targetH, spec);
-    } else {
-      // Tiny loading silhouette before PNG resolves
-      ctx.fillStyle = 'rgba(255,255,255,0.45)';
-      ctx.beginPath();
-      ctx.ellipse(0, -targetH * 0.4, targetW * 0.3, targetH * 0.3, 0, 0, Math.PI * 2);
-      ctx.fill();
     }
     ctx.restore();
 
-    // Return neck world position for realistic walking leash attachment
-    const neckWorldX = x + facing * (spec.neckAnchor.x * targetW * breathScaleX);
-    const neckWorldY = y - elevation + (spec.neckAnchor.y * targetH * breathScaleY);
+    // Sleeping Zzz visual
+    if (pose === 'sleep') {
+      ctx.save();
+      ctx.font = '700 16px Pretendard, sans-serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      const floatZ = Math.sin(now * 2.5) * 6;
+      ctx.fillText('Zzz', x + 16, y - targetH * 0.85 + floatZ);
+      ctx.restore();
+    }
 
-    // 3. Refined Apple-style frosted glass nameplate
+    const neckWorldX = x + facing * (spec.neckAnchor.x * targetW * scaleXMod);
+    const neckWorldY = y - elevation + (spec.neckAnchor.y * targetH * scaleYMod);
+
+    // 3. Glassmorphic nameplate
     if (showName && pet.name) {
       ctx.save();
       ctx.font = '700 11.5px Pretendard, sans-serif';
@@ -241,7 +254,6 @@ window.PawVerseWorld = (() => {
       ctx.fillStyle = isPlayer ? 'rgba(255, 112, 74, 0.9)' : 'rgba(22, 20, 18, 0.62)';
       roundRect(ctx, bx, by, bw, bh, 10.5);
       ctx.fill();
-
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
       ctx.lineWidth = 1;
       ctx.stroke();
@@ -256,7 +268,15 @@ window.PawVerseWorld = (() => {
     return {
       neckX: neckWorldX,
       neckY: neckWorldY,
-      topY: y - elevation - targetH
+      topY: y - elevation - targetH,
+      box: {
+        left: x - targetW * 0.45,
+        right: x + targetW * 0.45,
+        top: y - elevation - targetH,
+        bottom: y - elevation,
+        width: targetW,
+        height: targetH
+      }
     };
   }
 
@@ -272,11 +292,15 @@ window.PawVerseWorld = (() => {
       this.timeOfDay = initialState.timeOfDay || 'day';
       this.leashEnabled = initialState.leashEnabled !== false;
       this.walkMeters = initialState.walkMeters || 0;
+      this.growthScale = getGrowthInfo((initialState.growth && initialState.growth.exp) || 0).current.scaleMult;
       this._lastRewardMilestone = Math.floor(this.walkMeters / 100);
 
-      // Camera smooth parallax offset
       this.camX = 0;
       this.camY = 0;
+      this.pettingMode = false; // If true, dragging/clicking pet strokes them!
+      this.isDragging = false;
+      this.lastPetStrokeTs = 0;
+      this.lastPlayerBox = null;
 
       this.player = {
         ...initialState.avatar,
@@ -290,7 +314,9 @@ window.PawVerseWorld = (() => {
         jumpVel: 0,
         jumpY: 0,
         bubble: null,
-        stepTimer: 0
+        stepTimer: 0,
+        pose: null,
+        poseTimer: 0
       };
 
       this.npcs = NPCS.map((n) => ({
@@ -302,13 +328,16 @@ window.PawVerseWorld = (() => {
         isMoving: false,
         waitTimer: 70 + Math.random() * 140,
         bubble: null,
-        talkCooldown: 140 + Math.random() * 220
+        talkCooldown: 140 + Math.random() * 220,
+        greetCooldown: 0
       }));
 
-      // Interactive Tennis Ball (Fetch mini-interaction!)
+      // Interactive Walk Events: treasures, poop, tennis ball
       this.ball = null;
+      this.treasures = [];
+      this.poops = [];
+      this._spawnTreasure();
 
-      // Ambient particles (sunlit bokeh motes, footsteps, emotes, fireflies)
       this.particles = [];
       this.footsteps = [];
       this.motes = Array.from({ length: 28 }, () => ({
@@ -323,7 +352,6 @@ window.PawVerseWorld = (() => {
       this.clickMarker = null;
       this.keys = new Set();
 
-      // Preload all park scenes and transparent full-body pet PNGs
       ZONES.forEach((z) => getCachedImage(z.walkPhoto));
       Object.values(PET_SPRITES).forEach((s) => getCachedImage(s.spriteUrl));
 
@@ -341,24 +369,138 @@ window.PawVerseWorld = (() => {
     _getDepthScale(y) {
       const { minY, maxY } = this._getWalkBounds();
       const t = Math.max(0, Math.min(1, (y - minY) / Math.max(1, maxY - minY)));
-      // Realistic perspective depth: 0.56 at far park horizon -> 1.15 in foreground
       return 0.56 + t * 0.59;
     }
 
-    _bindEvents() {
-      this.canvas.addEventListener('click', (e) => {
-        const rect = this.canvas.getBoundingClientRect();
-        const scaleX = this.width / rect.width;
-        const scaleY = this.height / rect.height;
-        const bounds = this._getWalkBounds();
-        const rawX = (e.clientX - rect.left) * scaleX;
-        const rawY = (e.clientY - rect.top) * scaleY;
+    _spawnTreasure() {
+      if (this.treasures.length >= 2) return;
+      const b = this._getWalkBounds();
+      const types = [
+        { emoji: '🎁', label: '보물상자', coins: 45 },
+        { emoji: '🦴', label: '숨겨진 간식', coins: 30 },
+        { emoji: '🧸', label: '미니 장난감', coins: 35 }
+      ];
+      const pick = types[Math.floor(Math.random() * types.length)];
+      this.treasures.push({
+        id: Date.now() + Math.random(),
+        ...pick,
+        x: b.minX + 60 + Math.random() * (b.maxX - b.minX - 120),
+        y: b.minY + 35 + Math.random() * (b.maxY - b.minY - 70),
+        phase: Math.random() * 6
+      });
+    }
 
-        const tx = Math.max(bounds.minX, Math.min(bounds.maxX, rawX));
-        const ty = Math.max(bounds.minY, Math.min(bounds.maxY, rawY));
+    spawnPoop() {
+      if (this.poops.length >= 2) return;
+      this.poops.push({
+        id: Date.now() + Math.random(),
+        x: Math.max(80, Math.min(this.width - 80, this.player.x - this.player.facing * 42)),
+        y: Math.min(this.height - 38, this.player.y + 4)
+      });
+      this.say('응가했어요! 치워주세요 💩');
+      if (this.callbacks.onPoopSpawn) this.callbacks.onPoopSpawn(this.poops.length);
+    }
+
+    cleanAllPoops() {
+      if (!this.poops.length) return 0;
+      const count = this.poops.length;
+      for (const p of this.poops) {
+        this._spawnEmojiBurst('✨', p.x, p.y - 10, 5);
+      }
+      this.poops = [];
+      this.triggerEmote('🫧', '깨끗해졌다! 매너 산책 최고 ✨');
+      return count;
+    }
+
+    _getCanvasCoords(e) {
+      const rect = this.canvas.getBoundingClientRect();
+      return {
+        x: ((e.clientX - rect.left) * this.width) / rect.width,
+        y: ((e.clientY - rect.top) * this.height) / rect.height
+      };
+    }
+
+    _detectPetTouchZone(px, py) {
+      const box = this.lastPlayerBox;
+      if (!box) return null;
+      if (px < box.left || px > box.right || py < box.top || py > box.bottom) return null;
+
+      // Normalized relative to sprite facing direction
+      const relY = (py - box.top) / Math.max(1, box.height); // 0 = top, 1 = bottom
+      const relXFromCenter = ((px - this.player.x) * this.player.facing) / Math.max(1, box.width); // positive = head side
+
+      if (relXFromCenter > 0.05 && relY < 0.45) return 'head';
+      if (relXFromCenter > 0.0 && relY >= 0.45 && relY < 0.72) return 'chin';
+      return 'belly';
+    }
+
+    _handlePetTouch(zone, px, py) {
+      const now = performance.now();
+      if (now - this.lastPetStrokeTs < 550) return;
+      this.lastPetStrokeTs = now;
+
+      if (zone === 'head') {
+        this.setPose('happy', 110);
+        this.say('머리 쓰다듬어 주니까 꼬리가 살랑살랑~ ❤️');
+        this._spawnEmojiBurst('❤️', px, py - 10, 5);
+      } else if (zone === 'chin') {
+        this.setPose('tilt', 110);
+        this.say('턱 긁어주는 거 최고야~ 갸우뚱 ✨');
+        this._spawnEmojiBurst('✨', px, py - 10, 5);
+      } else {
+        this.setPose('belly', 120);
+        this.say('배 간지러워~! 발라당 기분 좋아 🐾');
+        this._spawnEmojiBurst('💕', px, py - 10, 6);
+      }
+
+      if (this.callbacks.onPetZoneTouch) {
+        this.callbacks.onPetZoneTouch(zone);
+      }
+    }
+
+    _bindEvents() {
+      this.canvas.addEventListener('pointerdown', (e) => {
+        this.isDragging = true;
+        const { x, y } = this._getCanvasCoords(e);
+
+        // 1. Check poop click to clean
+        const poopIdx = this.poops.findIndex((p) => Math.hypot(p.x - x, p.y - y) < 34);
+        if (poopIdx !== -1) {
+          const [removed] = this.poops.splice(poopIdx, 1);
+          this._spawnEmojiBurst('✨', removed.x, removed.y - 10, 6);
+          this.triggerEmote('✨', '배변 치우기 완료! 매너 최고!');
+          if (this.callbacks.onPoopCleaned) this.callbacks.onPoopCleaned(1);
+          return;
+        }
+
+        // 2. Check direct touch on pet (head / chin / belly!)
+        const touchZone = this._detectPetTouchZone(x, y);
+        if (touchZone) {
+          this._handlePetTouch(touchZone, x, y);
+          return;
+        }
+
+        // 3. Otherwise walk to clicked park ground
+        const bounds = this._getWalkBounds();
+        const tx = Math.max(bounds.minX, Math.min(bounds.maxX, x));
+        const ty = Math.max(bounds.minY, Math.min(bounds.maxY, y));
         this.player.targetX = tx;
         this.player.targetY = ty;
+        this.player.pose = null;
         this.clickMarker = { x: tx, y: ty, radius: 4, alpha: 0.9 };
+      });
+
+      this.canvas.addEventListener('pointermove', (e) => {
+        if (!this.isDragging) return;
+        const { x, y } = this._getCanvasCoords(e);
+        const touchZone = this._detectPetTouchZone(x, y);
+        if (touchZone) {
+          this._handlePetTouch(touchZone, x, y);
+        }
+      });
+
+      window.addEventListener('pointerup', () => {
+        this.isDragging = false;
       });
 
       this.canvas.addEventListener('dblclick', () => {
@@ -378,6 +520,15 @@ window.PawVerseWorld = (() => {
       });
     }
 
+    setPose(pose, durationFrames = 120) {
+      this.player.pose = pose;
+      this.player.poseTimer = durationFrames;
+    }
+
+    setGrowthScale(scaleMult) {
+      this.growthScale = scaleMult || 1;
+    }
+
     setZone(zoneId) {
       const next = ZONES.find((z) => z.id === zoneId);
       if (!next) return;
@@ -386,6 +537,8 @@ window.PawVerseWorld = (() => {
       const b = this._getWalkBounds();
       this.player.y = Math.max(b.minY + 40, Math.min(b.maxY - 20, this.player.y));
       this.player.targetY = this.player.y;
+      this.treasures = [];
+      this._spawnTreasure();
       this.triggerEmote('✨', `${next.name} 산책 시작!`);
     }
 
@@ -425,26 +578,38 @@ window.PawVerseWorld = (() => {
         targetX,
         targetY,
         t: 0,
-        state: 'flying', // flying -> landed -> fetched
+        state: 'flying',
         z: 0
       };
       this.say('공이다!! 잡아올게 🎾');
     }
 
-    say(text) {
-      this.player.bubble = { text, timer: 220 };
+    performCareVisual(type) {
+      if (type === 'feed') {
+        this.setPose('happy', 110);
+        this.triggerEmote('🍖', '냠냠! 너무 맛있어 🐾');
+      } else if (type === 'brush') {
+        this.setPose('tilt', 120);
+        this.triggerEmote('✨', '빗질하니까 털이 반짝반짝!');
+      } else if (type === 'bath') {
+        this.setPose('happy', 130);
+        this.triggerEmote('🫧', '보글보글 목욕 개운해!');
+      } else if (type === 'nap') {
+        this.setPose('sleep', 220);
+        this.say('포근하게 한숨 잘게... Zzz');
+      }
     }
 
-    triggerEmote(emoji, text) {
-      if (text) this.say(text);
-      if (emoji === '⚡') {
-        this.player.jumpVel = 8.4;
-      }
-      for (let i = 0; i < 6; i++) {
+    say(text) {
+      this.player.bubble = { text, timer: 230 };
+    }
+
+    _spawnEmojiBurst(emoji, x, y, count = 6) {
+      for (let i = 0; i < count; i++) {
         this.particles.push({
           emoji,
-          x: this.player.x + (Math.random() - 0.5) * 44,
-          y: this.player.y - 68,
+          x: x + (Math.random() - 0.5) * 46,
+          y: y + (Math.random() - 0.5) * 20,
           vy: -0.95 - Math.random() * 0.85,
           vx: (Math.random() - 0.5) * 0.9,
           alpha: 1,
@@ -453,15 +618,21 @@ window.PawVerseWorld = (() => {
       }
     }
 
+    triggerEmote(emoji, text) {
+      if (text) this.say(text);
+      if (emoji === '⚡') this.player.jumpVel = 8.4;
+      this._spawnEmojiBurst(emoji, this.player.x, this.player.y - 68, 6);
+    }
+
     waveToNpc(npcId) {
       const npc = this.npcs.find((n) => n.id === npcId);
       if (!npc) return;
       const b = this._getWalkBounds();
-      this.player.targetX = Math.max(b.minX, Math.min(b.maxX, npc.x - 85));
+      this.player.targetX = Math.max(b.minX, Math.min(b.maxX, npc.x - 75));
       this.player.targetY = Math.max(b.minY, Math.min(b.maxY, npc.y + 8));
       this.triggerEmote('👋', `${npc.name}야 같이 걷자!`);
       setTimeout(() => {
-        npc.bubble = { text: `${this.player.name}! 반가워 🐾`, timer: 200 };
+        npc.bubble = { text: `${this.player.name}! 코 인사 킁킁 🐾`, timer: 200 };
       }, 450);
     }
 
@@ -479,7 +650,12 @@ window.PawVerseWorld = (() => {
       const bounds = this._getWalkBounds();
       const depthSpeed = 2.6 + (this._getDepthScale(this.player.y) - 0.56) * 2.1;
 
-      // Update ball fetch physics
+      if (this.player.poseTimer > 0) {
+        this.player.poseTimer -= 1;
+        if (this.player.poseTimer <= 0) this.player.pose = null;
+      }
+
+      // Ball fetch physics
       if (this.ball) {
         if (this.ball.state === 'flying') {
           this.ball.t += 0.032;
@@ -495,16 +671,16 @@ window.PawVerseWorld = (() => {
           }
         } else if (this.ball.state === 'landed') {
           const distToBall = Math.hypot(this.ball.x - this.player.x, this.ball.y - this.player.y);
-          if (distToBall < 32) {
+          if (distToBall < 34) {
             this.ball = null;
-            this.player.jumpVel = 7.2;
+            this.player.jumpVel = 7.4;
             this.triggerEmote('🎾', '잡았다!! 신나 🐾');
             if (this.callbacks.onFetchBall) this.callbacks.onFetchBall();
           }
         }
       }
 
-      // Keyboard movement
+      // Movement
       let kx = 0;
       let ky = 0;
       if (this.keys.has('w') || this.keys.has('arrowup')) ky -= 1;
@@ -513,7 +689,6 @@ window.PawVerseWorld = (() => {
       if (this.keys.has('d') || this.keys.has('arrowright')) kx += 1;
 
       let movedDist = 0;
-
       if (kx !== 0 || ky !== 0) {
         const len = Math.hypot(kx, ky);
         const nx = Math.max(bounds.minX, Math.min(bounds.maxX, this.player.x + (kx / len) * depthSpeed));
@@ -526,6 +701,7 @@ window.PawVerseWorld = (() => {
         if (kx !== 0) this.player.facing = kx > 0 ? 1 : -1;
         this.player.walkPhase += 0.24;
         this.player.isMoving = true;
+        this.player.pose = null;
       } else {
         const dx = this.player.targetX - this.player.x;
         const dy = this.player.targetY - this.player.y;
@@ -540,6 +716,7 @@ window.PawVerseWorld = (() => {
           if (Math.abs(dx) > 1.2) this.player.facing = dx > 0 ? 1 : -1;
           this.player.walkPhase += this.ball ? 0.30 : 0.23;
           this.player.isMoving = true;
+          this.player.pose = null;
         } else {
           this.player.isMoving = false;
         }
@@ -551,6 +728,10 @@ window.PawVerseWorld = (() => {
         if (this.player.stepTimer > 22) {
           this.player.stepTimer = 0;
           this._spawnFootstep(this.player.x, this.player.y, this._getDepthScale(this.player.y));
+          // Occasional random poop during walks (~2.5% per step burst)
+          if (this.poops.length === 0 && Math.random() < 0.028) {
+            this.spawnPoop();
+          }
         }
         if (this.callbacks.onWalkProgress) {
           const milestone = Math.floor(this.walkMeters / 100);
@@ -560,7 +741,20 @@ window.PawVerseWorld = (() => {
         }
       }
 
-      // Smooth 2.5D camera parallax following player subtly
+      // Check Treasure pickups along the walk path!
+      for (let i = this.treasures.length - 1; i >= 0; i--) {
+        const tr = this.treasures[i];
+        tr.phase += 0.07;
+        if (Math.hypot(tr.x - this.player.x, tr.y - this.player.y) < 42) {
+          this.treasures.splice(i, 1);
+          this._spawnEmojiBurst(tr.emoji, tr.x, tr.y - 16, 7);
+          this.say(`${tr.label} 발견! (+${tr.coins} P) 🎉`);
+          if (this.callbacks.onTreasureFound) this.callbacks.onTreasureFound(tr);
+          setTimeout(() => this._spawnTreasure(), 7000);
+        }
+      }
+
+      // Camera parallax
       const desiredCamX = ((this.player.x / this.width) - 0.5) * -44;
       const desiredCamY = ((this.player.y / this.height) - 0.72) * -18;
       this.camX += (desiredCamX - this.camX) * 0.06;
@@ -581,8 +775,18 @@ window.PawVerseWorld = (() => {
         if (this.player.bubble.timer <= 0) this.player.bubble = null;
       }
 
-      // NPCs strolling naturally along the park ground plane
+      // NPCs strolling + proximity sniff-greeting event!
       for (const npc of this.npcs) {
+        if (npc.greetCooldown > 0) npc.greetCooldown -= 1;
+        const distToPlayer = Math.hypot(npc.x - this.player.x, npc.y - this.player.y);
+        if (distToPlayer < 66 && npc.greetCooldown <= 0) {
+          npc.greetCooldown = 500;
+          npc.bubble = { text: `킁킁~ ${this.player.name} 반가워! ❤️`, timer: 190 };
+          this.say(`${npc.name}랑 냄새 인사했어요! 🐾`);
+          this._spawnEmojiBurst('💕', (npc.x + this.player.x) / 2, this.player.y - 55, 5);
+          if (this.callbacks.onNpcGreet) this.callbacks.onNpcGreet(npc);
+        }
+
         const dx = npc.targetX - npc.x;
         const dy = npc.targetY - npc.y;
         const dist = Math.hypot(dx, dy);
@@ -616,7 +820,6 @@ window.PawVerseWorld = (() => {
         }
       }
 
-      // Update footsteps & emote particles
       for (let i = this.footsteps.length - 1; i >= 0; i--) {
         const f = this.footsteps[i];
         f.y += f.vy;
@@ -657,7 +860,6 @@ window.PawVerseWorld = (() => {
       if (bgImg) {
         const iw = bgImg.naturalWidth || bgImg.width;
         const ih = bgImg.naturalHeight || bgImg.height;
-        // 1.12x overscan for silky 2.5D parallax panning
         const scale = Math.max((w * 1.12) / iw, (h * 1.12) / ih);
         const dw = iw * scale;
         const dh = ih * scale;
@@ -682,14 +884,12 @@ window.PawVerseWorld = (() => {
         ctx.fillRect(0, 0, w, h);
       }
 
-      // Soft bottom atmospheric depth gradient for crisp foreground grounding
       const bottomFade = ctx.createLinearGradient(0, h * 0.75, 0, h);
       bottomFade.addColorStop(0, 'rgba(0,0,0,0)');
       bottomFade.addColorStop(1, 'rgba(18, 22, 16, 0.24)');
       ctx.fillStyle = bottomFade;
       ctx.fillRect(0, h * 0.75, w, h * 0.25);
 
-      // Click-to-walk perspective ground ripple
       if (this.clickMarker) {
         const ds = this._getDepthScale(this.clickMarker.y);
         ctx.save();
@@ -710,9 +910,44 @@ window.PawVerseWorld = (() => {
       }
     }
 
+    _drawWorldItems(ctx) {
+      // Glowing hidden treasures on path
+      for (const tr of this.treasures) {
+        const ds = this._getDepthScale(tr.y);
+        const bob = Math.sin(tr.phase) * 4;
+        ctx.save();
+        const g = ctx.createRadialGradient(tr.x, tr.y - 6, 2, tr.x, tr.y - 6, 28 * ds);
+        g.addColorStop(0, 'rgba(255, 224, 110, 0.65)');
+        g.addColorStop(1, 'rgba(255, 224, 110, 0)');
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        ctx.arc(tr.x, tr.y - 6, 28 * ds, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.font = `${Math.round(28 * ds)}px serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(tr.emoji, tr.x, tr.y - 12 * ds + bob);
+        ctx.restore();
+      }
+
+      // Click-to-clean poops
+      for (const p of this.poops) {
+        const ds = this._getDepthScale(p.y);
+        ctx.save();
+        ctx.fillStyle = 'rgba(0,0,0,0.22)';
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y + 4, 14 * ds, 5 * ds, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = `${Math.round(24 * ds)}px serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText('💩', p.x, p.y);
+        ctx.restore();
+      }
+    }
+
     _drawLeash(ctx, neckX, neckY) {
       if (!this.leashEnabled) return;
-      // Owner's POV hand holding the leash softly from foreground bottom-left
       const handX = this.width * 0.14 + this.camX * 0.4;
       const handY = this.height + 24;
       const dist = Math.hypot(neckX - handX, neckY - handY);
@@ -721,7 +956,6 @@ window.PawVerseWorld = (() => {
       const ctrlY = Math.max(handY - 40, (handY + neckY) * 0.5 + slack);
 
       ctx.save();
-      // Subtle leash shadow
       ctx.strokeStyle = 'rgba(0, 0, 0, 0.18)';
       ctx.lineWidth = 4;
       ctx.lineCap = 'round';
@@ -730,19 +964,13 @@ window.PawVerseWorld = (() => {
       ctx.quadraticCurveTo(ctrlX, ctrlY + 6, neckX, neckY + 3);
       ctx.stroke();
 
-      // Woven warm tan/coral walking leash
-      const grad = ctx.createLinearGradient(handX, handY, neckX, neckY);
-      grad.addColorStop(0, '#C96F4B');
-      grad.addColorStop(0.5, '#E48962');
-      grad.addColorStop(1, '#D65145');
-      ctx.strokeStyle = grad;
+      ctx.strokeStyle = this.player.color || '#E46A52';
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(handX, handY);
       ctx.quadraticCurveTo(ctrlX, ctrlY, neckX, neckY);
       ctx.stroke();
 
-      // Metallic collar clasp at pet's neck
       ctx.fillStyle = '#E5E7EB';
       ctx.strokeStyle = '#6B7280';
       ctx.lineWidth = 1;
@@ -758,13 +986,11 @@ window.PawVerseWorld = (() => {
       const ds = this._getDepthScale(this.ball.y);
       const r = 9 * ds;
       ctx.save();
-      // Ball ground shadow
       ctx.fillStyle = 'rgba(0,0,0,0.28)';
       ctx.beginPath();
       ctx.ellipse(this.ball.x, this.ball.y, r * 1.1, r * 0.4, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Tennis ball body
       const by = this.ball.y - this.ball.z - r;
       const g = ctx.createRadialGradient(this.ball.x - r * 0.3, by - r * 0.3, r * 0.1, this.ball.x, by, r);
       g.addColorStop(0, '#E9FF70');
@@ -773,20 +999,12 @@ window.PawVerseWorld = (() => {
       ctx.beginPath();
       ctx.arc(this.ball.x, by, r, 0, Math.PI * 2);
       ctx.fill();
-
-      ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.arc(this.ball.x, by, r * 0.65, -0.8, 0.8);
-      ctx.stroke();
       ctx.restore();
     }
 
     _drawAtmosphere(ctx) {
       const { width: w, height: h } = this;
-
       if (this.timeOfDay === 'day') {
-        // Volumetric diagonal sunbeams from top-left
         ctx.save();
         const beam = ctx.createLinearGradient(0, 0, w * 0.65, h * 0.75);
         beam.addColorStop(0, 'rgba(255, 250, 224, 0.22)');
@@ -801,7 +1019,6 @@ window.PawVerseWorld = (() => {
         ctx.closePath();
         ctx.fill();
 
-        // Drifting golden sunlit bokeh motes
         for (const m of this.motes) {
           const alpha = 0.18 + 0.22 * Math.sin(m.phase);
           ctx.fillStyle = `rgba(255, 251, 224, ${alpha})`;
@@ -829,14 +1046,12 @@ window.PawVerseWorld = (() => {
         ctx.restore();
       } else if (this.timeOfDay === 'night') {
         ctx.save();
-        // Soft warm moonlight halo around player so they stay cozy and clear
         const halo = ctx.createRadialGradient(this.player.x, this.player.y - 40, 15, this.player.x, this.player.y - 40, 175);
         halo.addColorStop(0, 'rgba(255, 236, 180, 0.16)');
         halo.addColorStop(1, 'rgba(10, 16, 38, 0)');
         ctx.fillStyle = halo;
         ctx.fillRect(0, 0, w, h);
 
-        // Glowing fireflies
         for (const m of this.motes) {
           const alpha = 0.35 + 0.65 * Math.abs(Math.sin(m.phase * 1.4));
           ctx.fillStyle = `rgba(255, 240, 145, ${alpha})`;
@@ -852,7 +1067,7 @@ window.PawVerseWorld = (() => {
       ctx.save();
       ctx.font = '600 12px Pretendard, sans-serif';
       const padX = 11;
-      const w = Math.min(220, ctx.measureText(text).width + padX * 2);
+      const w = Math.min(240, ctx.measureText(text).width + padX * 2);
       const h = 30;
       const bx = Math.max(12, Math.min(this.width - w - 12, x - w / 2));
       const by = Math.max(54, topY - 34);
@@ -860,7 +1075,7 @@ window.PawVerseWorld = (() => {
       ctx.shadowColor = 'rgba(0, 0, 0, 0.16)';
       ctx.shadowBlur = 12;
       ctx.shadowOffsetY = 4;
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
       roundRect(ctx, bx, by, w, h, 14);
       ctx.fill();
 
@@ -876,10 +1091,8 @@ window.PawVerseWorld = (() => {
       const ctx = this.ctx;
       ctx.clearRect(0, 0, this.width, this.height);
 
-      // 1. Full-bleed scenic Pexels park photo with 2.5D parallax
       this._drawScenicBackground(ctx);
 
-      // 2. Soft ground footstep dust puffs
       for (const f of this.footsteps) {
         ctx.save();
         ctx.fillStyle = `rgba(255, 248, 232, ${f.alpha})`;
@@ -889,7 +1102,8 @@ window.PawVerseWorld = (() => {
         ctx.restore();
       }
 
-      // 3. Depth-sort all pets by Y ground plane (back-to-front perspective!)
+      this._drawWorldItems(ctx);
+
       const actors = [
         ...this.npcs.map((n) => ({ ...n, isPlayer: false })),
         { ...this.player, isPlayer: true }
@@ -898,7 +1112,7 @@ window.PawVerseWorld = (() => {
       const bubblesToDraw = [];
 
       for (const actor of actors) {
-        const depthScale = this._getDepthScale(actor.y);
+        const depthScale = this._getDepthScale(actor.y) * (actor.isPlayer ? this.growthScale : 1);
         const anchors = drawPetCharacter(ctx, actor, {
           x: actor.x,
           y: actor.y,
@@ -909,11 +1123,12 @@ window.PawVerseWorld = (() => {
           facing: actor.facing,
           isPlayer: actor.isPlayer,
           showName: true,
-          timeOfDay: this.timeOfDay
+          timeOfDay: this.timeOfDay,
+          pose: actor.isPlayer ? actor.pose : null
         });
 
-        // Draw realistic leash attached to player's neck right after player renders
         if (actor.isPlayer) {
+          this.lastPlayerBox = anchors.box;
           this._drawLeash(ctx, anchors.neckX, anchors.neckY);
         }
 
@@ -922,13 +1137,9 @@ window.PawVerseWorld = (() => {
         }
       }
 
-      // 4. Fetch tennis ball
       this._drawBall(ctx);
-
-      // 5. Atmospheric sunbeams / sunset glow / fireflies
       this._drawAtmosphere(ctx);
 
-      // 6. Floating emote particles
       for (const p of this.particles) {
         ctx.save();
         ctx.globalAlpha = p.alpha;
@@ -938,7 +1149,6 @@ window.PawVerseWorld = (() => {
         ctx.restore();
       }
 
-      // 7. Crisp speech bubbles on top
       for (const b of bubblesToDraw) {
         this._drawSpeechBubble(ctx, b.x, b.topY, b.text);
       }
